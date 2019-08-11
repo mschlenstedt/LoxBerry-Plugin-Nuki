@@ -24,10 +24,9 @@ use Config::Simple '-strict';
 use CGI::Carp qw(fatalsToBrowser);
 use CGI;
 use LWP::UserAgent;
-#use JSON qw( decode_json );
 use LoxBerry::System;
 use LoxBerry::Web;
-#use MIME::Base64;
+use LoxBerry::JSON;
 use warnings;
 use strict;
 
@@ -68,9 +67,8 @@ if( $q->{ajax} ) {
 	# Search bridges
 	if( $q->{ajax} eq "searchbridges" ) {
 		print STDERR "Search for Bridges was called.\n" if $debug;
-		my $response = &searchbridges();
-		#print JSON::encode_json(\%response);
-		print $response;
+		$response{error} = &searchbridges();;
+		print JSON::encode_json(\%response);
 	}
 	
 	exit;
@@ -189,13 +187,46 @@ sub searchbridges
 	my $ua = LWP::UserAgent->new(timeout => 10);
 	print STDERR "Call https://api.nuki.io/discover/bridges\n";
 	my $response = $ua->get('https://api.nuki.io/discover/bridges');
+	my $errors;
 
 	if ($response->is_success) {
 		print STDERR "Success: " . $response->status_line . "\n";
 		print STDERR "Response: " . $response->decoded_content . "\n" if $debug;
+		my $jsonobjbr = LoxBerry::JSON->new();
+		my $bridges = $jsonobjbr->parse($response->decoded_content);
+		if ( !$bridges->{errorCode} && $bridges->{errorCode} ne "0" ) {$bridges->{errorCode} = "Undef"};
+		print STDERR "ErrorCode: $bridges->{errorCode}\n" if $debug;
+		if ($bridges->{errorCode} eq "0") {
+			# Config
+			my $cfgfile = $lbpconfigdir . "/bridges.json";
+			my $jsonobj = LoxBerry::JSON->new();
+			my $cfg = $jsonobj->open(filename => $cfgfile);
+			for my $results( @{$bridges->{bridges}} ){
+				print STDERR "Found BridgeID: " . $results->{bridgeId} . "\n" if $debug;
+				if ( $cfg->{$results->{bridgeId}} ) {
+					print STDERR "Bridge already exists in Config -> Skipping\n" if $debug;
+					next;
+				} else {
+					print STDERR "Bridge does not exist in Config -> Saving\n" if $debug;
+					$cfg->{$results->{bridgeId}}->{bridgeId} = $results->{bridgeId};
+					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
+					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
+					if ( $results->{ip} eq "0.0.0.0" ) {
+						$cfg->{$results->{bridgeId}}->{discovery} = "disabled";
+					} else {
+						$cfg->{$results->{bridgeId}}->{discovery} = "enabled";
+					}
+				}
+			}
+			$jsonobj->write();
+		} else {
+			print STDERR "Data Failure - Error Code: " . $bridges->{errorCode} . "\n";
+			$errors++;
+		}
 	}
 	else {
-		print STDERR "Failure: " . $response->status_line . "\n";
+		print STDERR "Get Failure: " . $response->status_line . "\n";
+		$errors++;
 	}
-	return ($response->decoded_content);
+	return ($errors);
 }
