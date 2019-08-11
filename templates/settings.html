@@ -17,7 +17,59 @@
 	</div>
 </div>
 
+<TMPL_IF FORM_BRIDGES>
 
+	<FORM id="main_form" style="visibility:hidden;"> <!-- style="display:none;" --> 
+
+	<STYLE>
+		.lb_flex-item 
+		{	
+			min-width	:450px;
+			width		:450px;
+			max-width	:450px;
+			flex-wrap	:nowrap;
+			margin-top: -10px;  
+		}
+		.lb_flex-item-help 
+		{
+			min-width	:100px;
+			width		:100%;
+			position	:relative;
+			margin-left	:10px;
+		}
+	</STYLE>
+	
+	<!-- Button area -->
+	<DIV style="text-align:center;">
+			<!-- 
+			<A	id=		"btncancel"
+				data-role=	"button"
+				data-inline=	"true"
+				data-mini=	"true"
+				data-icon=	"delete"
+				href=		"/admin/system/index.cgi?form=system"><TMPL_VAR COMMON.BUTTON_CANCEL></A> -->
+			<!-- <BUTTON	type=		"submit"
+				form=		"main_form"
+				id=		"btnsubmit"
+				data-role=	"button"
+				data-inline=	"true"
+				data-mini=	"true"
+				data-icon=	"check"><TMPL_VAR COMMON.BUTTON_SAVE></BUTTON> -->
+			<A 	href="#" 
+				id="btnsearchbridges" 
+				name="btnsearchbridges" 
+				data-role="button" 
+				data-inline="true" 
+				data-mini="true" 
+				data-icon="search"><TMPL_VAR BRIDGES.BUTTON_SEARCH></A>
+	</DIV>
+	
+	<!-- AJAX response status area --> 
+	<DIV id="ajaxstatus" style="margin: auto; width:100%; padding:10px; text-align:center;">&nbsp;</DIV>
+	
+	</FORM>
+
+</TMPL_IF>
 
 
 
@@ -44,6 +96,26 @@ $(function() {
 		$("#securepin_block").fadeIn();
 	}
 		
+});
+
+// Search for Bridges
+$('#btnsearchbridges').click( function(e) {
+	console.log("Search for Bridges");
+	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR BRIDGES.SEARCH_WAIT>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'searchbridges' }
+		} )
+	.fail(function( data ) {
+		console.log( "Fail", data );
+		$("#search_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.ERROR_GENERIC>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "Success: ", data );
+	})
+	.always(function( data ) {
+		console.log( "Finished" );
+	});
 });
 
 function checkSecurePIN() {
