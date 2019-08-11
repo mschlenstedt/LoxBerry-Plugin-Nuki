@@ -1,0 +1,129 @@
+<!-- SecurePIN --> 
+<div id="securepin_block" style="margin: 0 auto; width:350px; display:none">
+	<TMPL_VAR SECUREPIN.ENTER_SECUREPIN>
+	<input name="securepin" id="securepin" type="text" onkeypress="return AddKeyPress(event, $('#check_securepin'));">
+	<button class="ui-btn ui-btn-icon-right ui-corner-all" id="check_securepin" data-inline="true"><TMPL_VAR COMMON.BUTTON_OK></button>
+	
+	<div class="hint" id="check_hint" style="padding: 5px 5px 5px 5px;">&nbsp;</div>
+	<br>
+	<div class="path" style="background: #FF8080; font-color: black; text-shadow: none; border: black 1px solid; padding: 5px;">
+		<p style="font-weight: bold;">
+			<TMPL_VAR SECUREPIN.WARNING_TITLE>
+		</p>
+		<hr>
+		<p>
+			<TMPL_VAR SECUREPIN.PREVENT_SPY>
+		</p>
+	</div>
+</div>
+
+<script>
+// Set language
+var lang = '<TMPL_VAR LANG>';
+
+$(function() {
+
+	// Check SecurePIN by ajax and load form data
+	$("#check_securepin").click(function(){
+		console.log("Check securepin called");
+		checkSecurePIN();
+	});
+	
+	// Set SecurePIN from session storage
+	$('#securepin').val(sessionStorage.getItem("securePIN"));
+	if( $('#securepin').val() ) {
+		$('#check_securepin').trigger("click");
+	} else {
+		$("#securepin_block").fadeIn();
+	}
+		
+});
+
+function checkSecurePIN() {
+
+	// var data = $('form').serialize() + "&save=true";
+	console.log("Checking secure pin");
+	$("#check_securepin").attr("disabled", true);
+	$("#check_hint").attr("style", "color:blue;").html("<TMPL_VAR SECUREPIN.CHECK_WAIT>");
+	$.ajax( { 
+			type: 'POST',
+			//url: '/admin/system/tools/ajax-config-handler.cgi', 
+			data: { action: 'getcfg', secpin: $('#securepin').val() }
+		} )
+	.fail(function( data ) {
+		console.log( "Error", data );
+		$("#securepin_block").fadeIn();
+		$("#check_hint").attr("style", "color:red").html("<TMPL_VAR SECUREPIN.ERROR_GENERIC>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "getcred Success", data );
+		// $("#savemessages").attr("style", "color:green").html("Saved successfully |");
+		
+		if( data.error && data.error != 0 ) {
+			switch (data.error) {
+				case 1: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break;
+				case 2: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break;
+				case 3: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break; 
+			}
+			
+			$("#check_hint").attr("style", "color:red").html(data.message);
+			return;
+		}
+		
+		// Save PIN to session storage
+		sessionStorage.setItem("securePIN", $('#securepin').val());
+		$("#securepin_block").fadeOut();
+		
+		fillForm( data );
+		
+		// $("#main_form").fadeIn();
+		$("#main_form").css( 'visibility', 'visible');
+		
+	})
+	
+	.always(function( data ) {
+		console.log( "Finished" );
+		$("#check_securepin").attr("disabled", false);
+	
+	});
+	
+}
+
+function fillForm ( data ) 
+{
+	// Fill the form with json data retrieved from the ajax getmailcfg call
+	// As this are little fields, we do it "by hand" (see MQTT plugin for an automated form filling)
+	console.log ("Fill form", data);
+	
+	// SMTP Form
+	
+	if(data.SMTP) {
+		if(data.SMTP.EMAIL) $("#email").val(data.SMTP.EMAIL);
+		if(data.SMTP.HOST) $("#smtpserver").val(data.SMTP.HOST);
+		if(data.SMTP.PORT) $("#smtpport").val(data.SMTP.PORT);
+		if(data.SMTP.USER) $("#smtpuser").val(data.SMTP.USER);
+		if(data.SMTP.PASSWORD) $("#smtppass").val(data.SMTP.PASSWORD);
+		
+		// Checkboxes
+		if(is_enabled(data.SMTP.ACTIVATE_MAIL)) $("#activate_mail").prop('checked', true).checkboxradio("refresh");
+		if(is_enabled(data.SMTP.AUTH)) $("#smtpauth").prop('checked', true).checkboxradio("refresh");
+		if(is_enabled(data.SMTP.TLS)) $("#smtpcrypt").prop('checked', true).checkboxradio("refresh");
+	}
+
+	// Notifications Area
+	if(data.NOTIFICATION) {
+		if(is_enabled(data.NOTIFICATION.MAIL_SYSTEM_ERRORS)) 
+			$("#MAIL_SYSTEM_ERRORS").prop('checked', true).checkboxradio("refresh");
+		
+		if(is_enabled(data.NOTIFICATION.MAIL_SYSTEM_INFOS)) 
+			$("#MAIL_SYSTEM_INFOS").prop('checked', true).checkboxradio("refresh");
+		
+		if(is_enabled(data.NOTIFICATION.MAIL_PLUGIN_ERRORS)) 
+			$("#MAIL_PLUGIN_ERRORS").prop('checked', true).checkboxradio("refresh");
+		if(is_enabled(data.NOTIFICATION.MAIL_PLUGIN_INFOS)) 
+			$("#MAIL_PLUGIN_INFOS").prop('checked', true).checkboxradio("refresh");
+	}
+	disable();
+}
+
+</script>
