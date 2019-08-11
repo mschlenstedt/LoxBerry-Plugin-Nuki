@@ -17,6 +17,13 @@
 	</div>
 </div>
 
+
+
+
+
+
+
+
 <script>
 // Set language
 var lang = '<TMPL_VAR LANG>';
@@ -41,31 +48,24 @@ $(function() {
 
 function checkSecurePIN() {
 
-	// var data = $('form').serialize() + "&save=true";
 	console.log("Checking secure pin");
 	$("#check_securepin").attr("disabled", true);
 	$("#check_hint").attr("style", "color:blue;").html("<TMPL_VAR SECUREPIN.CHECK_WAIT>");
 	$.ajax( { 
 			type: 'POST',
-			//url: '/admin/system/tools/ajax-config-handler.cgi', 
-			data: { action: 'getcfg', secpin: $('#securepin').val() }
+			data: { ajax: 'checksecpin', secpin: $('#securepin').val() }
 		} )
 	.fail(function( data ) {
-		console.log( "Error", data );
+		console.log( "Fail", data );
 		$("#securepin_block").fadeIn();
 		$("#check_hint").attr("style", "color:red").html("<TMPL_VAR SECUREPIN.ERROR_GENERIC>: "+data.statusText);
 	})
 	.done(function( data ) {
 		console.log( "getcred Success", data );
-		// $("#savemessages").attr("style", "color:green").html("Saved successfully |");
-		
 		if( data.error && data.error != 0 ) {
-			switch (data.error) {
-				case 1: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break;
-				case 2: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break;
-				case 3: data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>'; break; 
-			}
-			
+			console.log( "Error detected", data.error );
+			data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>';
+			console.log( "Message:", data.message );
 			$("#check_hint").attr("style", "color:red").html(data.message);
 			return;
 		}
@@ -74,17 +74,15 @@ function checkSecurePIN() {
 		sessionStorage.setItem("securePIN", $('#securepin').val());
 		$("#securepin_block").fadeOut();
 		
-		fillForm( data );
+		//fillForm( data );
 		
 		// $("#main_form").fadeIn();
-		$("#main_form").css( 'visibility', 'visible');
+		$("#main_form").css( 'visibility', 'visible' );
 		
 	})
-	
 	.always(function( data ) {
 		console.log( "Finished" );
 		$("#check_securepin").attr("disabled", false);
-	
 	});
 	
 }
