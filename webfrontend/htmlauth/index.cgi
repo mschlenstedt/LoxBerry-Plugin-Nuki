@@ -44,6 +44,10 @@ my $version = LoxBerry::System::pluginversion();
 my $debug = 1;
 my $template;
 
+# Language Phrases
+my %L;
+
+
 ##########################################################################
 # AJAX
 ##########################################################################
@@ -86,7 +90,7 @@ if( $q->{ajax} ) {
 	    loop_context_vars => 1,
 	    die_on_bad_params => 0,
 	);
-
+	%L = LoxBerry::System::readlanguage($template, "language.ini");
 	
 	# Default is Bridges form
 	$q->{form} = "bridges" if !$q->{form};
@@ -108,6 +112,42 @@ exit;
 sub form_bridges
 {
 	$template->param("FORM_BRIDGES", 1);
+
+	# Config
+	my $cfgfile = $lbpconfigdir . "/bridges.json";
+	print STDERR "Parsing Config: " . $cfgfile . "\n";
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $cfgfile);
+	my @bridges;
+	foreach my $key (keys %$cfg) {
+		print STDERR "Found Bridge: " . $cfg->{$key}->{bridgeId} . "\n";
+		my %bridge;
+		%bridge = (
+			'BRIDGEID' => $cfg->{$key}->{bridgeId},
+			'IP' => $cfg->{$key}->{ip},
+			'PORT' => $cfg->{$key}->{port},
+			'TOKEN' => $cfg->{$key}->{token},
+		);
+		# Check online status
+		my $bridgeurl = "http://" . $cfg->{$key}->{ip} . ":" . $cfg->{$key}->{port} . "/info";
+		print STDERR "Check Online Status: $bridgeurl\n";
+		my $ua = LWP::UserAgent->new(timeout => 10);
+		my $response = $ua->get("$bridgeurl");
+		if ($response->code eq "401") {
+			$bridge{STATUS} = "<span style='color:green'>$L{'BRIDGES.LABEL_ONLINE'}</span>";
+		} else {
+			$bridge{STATUS} = "<span style='font-weight:bold; color:red'>$L{'BRIDGES.LABEL_OFFLINE'}</span>";
+		}
+		# Check discovery status
+		if (is_enabled("$cfg->{$key}->{discovery}") {
+			$bridge{DISCOVERY} = "$L{'BRIDGES.LABEL_ENABLED'}";
+		} else {
+			$bridge{DISCOVERY} = "$L{'BRIDGES.LABEL_DISABLED'}";
+		}
+
+		push(@bridges, \%bridge);
+	}
+	$template->param("BRIDGES" => \@bridges);
 	return();
 }
 
@@ -118,9 +158,6 @@ sub form_bridges
 
 sub form_print
 {
-
-	# Language
-	my %L = LoxBerry::System::readlanguage($template, "language.ini");
 
 	# Navbar
 	our %navbar;
@@ -173,10 +210,10 @@ sub checksecpin
 {
 	my $error;
 	if ( LoxBerry::System::check_securepin($q->{secpin}) ) {
-		print STDERR "The entered securepin is wrong." if $debug;
+		print STDERR "The entered securepin is wrong.\n" if $debug;
 		$error = 1;
 	} else {
-		print STDERR "You have entered the correct securepin. Continuing." if $debug;
+		print STDERR "You have entered the correct securepin. Continuing.\n" if $debug;
 		$error = 0;
 	}
 	return ($error);

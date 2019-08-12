@@ -69,6 +69,39 @@
 	
 	</FORM>
 
+	<table data-role="table" id="temp-table" data-mode="reflow" class="ui-responsive table-stroke">
+	<thead>
+		<tr>
+			<th><TMPL_VAR BRIDGES.LABEL_BRIDGEID></th>
+			<th><center><TMPL_VAR BRIDGES.LABEL_IPADDRESS></center></th>
+			<th><center><TMPL_VAR BRIDGES.LABEL_PORT></center></th>
+			<th><center><TMPL_VAR BRIDGES.LABEL_DISCOVERY></center></th>
+			<th><center><TMPL_VAR BRIDGES.LABEL_STATUS></center></th>
+			<th><center><TMPL_VAR BRIDGES.LABEL_ACTIONS></center></th>
+		</tr>
+	</thead>
+	<tbody>
+		<TMPL_LOOP NAME=BRIDGES>
+			<tr>
+				<td><TMPL_VAR NAME="BRIDGEID"></td>
+				<td><center><TMPL_VAR NAME="IP"></center><br></td>
+				<td><center><TMPL_VAR NAME="PORT"></center><br></td>
+				<td><center><TMPL_VAR NAME="DISCOVERY"></center><br></td>
+				<td><center><TMPL_VAR NAME="STATUS"></center><br></td>
+				<td><center>
+				<a href="#" id="btnbridgeactivate" name="btnbridgeactivate" 
+					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> <TMPL_VAR NAME="BRIDGEID">"
+					data-role="button" data-inline="true" data-mini="true" data-icon="power" data-iconpos="notext"></a>
+				<a href="#" id="btnbridgedelete" name="btnbridgedelete" 
+					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> <TMPL_VAR NAME="BRIDGEID">"
+					data-role="button" data-inline="true" data-mini="true" data-icon="delete" data-iconpos="notext"></a>
+				</center></td>
+			</tr>
+		</TMPL_LOOP>
+	</tbody>
+</table>
+<br>
+
 </TMPL_IF>
 
 

@@ -1,0 +1,12 @@
+{
+   "456786513" : {
+      "nukiId" : "456786513",
+      "deviceType" : 0,
+      "name" : "Haustür"
+   },
+   "456774322" : {
+      "nukiId" : "456774322",
+      "deviceType" : 0,
+      "name" : "Terassentür"
+   }
+}
