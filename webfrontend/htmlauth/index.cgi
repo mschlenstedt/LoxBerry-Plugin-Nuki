@@ -139,10 +139,10 @@ sub form_bridges
 			$bridge{STATUS} = "<span style='font-weight:bold; color:red'>$L{'BRIDGES.LABEL_OFFLINE'}</span>";
 		}
 		# Check discovery status
-		if (is_enabled("$cfg->{$key}->{discovery}") {
-			$bridge{DISCOVERY} = "$L{'BRIDGES.LABEL_ENABLED'}";
+		if ( is_enabled($cfg->{$key}->{discovery}) ) {
+			$bridge{DISCOVERY} = $L{'BRIDGES.LABEL_ENABLED'};
 		} else {
-			$bridge{DISCOVERY} = "$L{'BRIDGES.LABEL_DISABLED'}";
+			$bridge{DISCOVERY} = $L{'BRIDGES.LABEL_DISABLED'};
 		}
 
 		push(@bridges, \%bridge);
