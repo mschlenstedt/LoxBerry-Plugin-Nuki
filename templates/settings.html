@@ -4,7 +4,7 @@
 	<input name="securepin" id="securepin" type="text" onkeypress="return AddKeyPress(event, $('#check_securepin'));">
 	<button class="ui-btn ui-btn-icon-right ui-corner-all" id="check_securepin" data-inline="true"><TMPL_VAR COMMON.BUTTON_OK></button>
 	
-	<div class="hint" id="check_hint" style="padding: 5px 5px 5px 5px;">&nbsp;</div>
+	<div class="hint" id="check_hint" style="padding: 5px 5px 5px 5px;"></div>
 	<br>
 	<div class="path" style="background: #FF8080; font-color: black; text-shadow: none; border: black 1px solid; padding: 5px;">
 		<p style="font-weight: bold;">
@@ -19,88 +19,94 @@
 
 <TMPL_IF FORM_BRIDGES>
 
-	<FORM id="main_form" style="visibility:hidden;"> <!-- style="display:none;" --> 
+	<div id="main" style="visibility:hidden;"> <!-- style="display:none;" --> 
 
-	<STYLE>
-		.lb_flex-item 
-		{	
-			min-width	:450px;
-			width		:450px;
-			max-width	:450px;
-			flex-wrap	:nowrap;
-			margin-top: -10px;  
-		}
-		.lb_flex-item-help 
-		{
-			min-width	:100px;
-			width		:100%;
-			position	:relative;
-			margin-left	:10px;
-		}
-	</STYLE>
-	
-	<!-- Button area -->
-	<DIV style="text-align:center;">
-			<!-- 
-			<A	id=		"btncancel"
-				data-role=	"button"
-				data-inline=	"true"
-				data-mini=	"true"
-				data-icon=	"delete"
-				href=		"/admin/system/index.cgi?form=system"><TMPL_VAR COMMON.BUTTON_CANCEL></A> -->
-			<!-- <BUTTON	type=		"submit"
-				form=		"main_form"
-				id=		"btnsubmit"
-				data-role=	"button"
-				data-inline=	"true"
-				data-mini=	"true"
-				data-icon=	"check"><TMPL_VAR COMMON.BUTTON_SAVE></BUTTON> -->
-			<A 	href="#" 
-				id="btnsearchbridges" 
-				name="btnsearchbridges" 
-				data-role="button" 
-				data-inline="true" 
-				data-mini="true" 
-				data-icon="search"><TMPL_VAR BRIDGES.BUTTON_SEARCH></A>
-	</DIV>
-	
-	<!-- AJAX response status area --> 
-	<DIV id="ajaxstatus" style="margin: auto; width:100%; padding:10px; text-align:center;">&nbsp;</DIV>
-	
-	</FORM>
+		<style>
+			.listtable td
+			{
+				vertical-align	:middle;
+				text-align		:center;
+			}
+			.lb_flex-item 
+			{	
+				min-width	:450px;
+				width		:450px;
+				max-width	:450px;
+				flex-wrap	:nowrap;
+				margin-top: -10px;  
+			}
+			.lb_flex-item-help 
+			{
+				min-width	:100px;
+				width		:100%;
+				position	:relative;
+				margin-left	:10px;
+			}
+		</style>
+		
+		<!-- Button area -->
+		<div style="text-align:center;">
+				<a 	href="#" 
+					id="btnsearchbridges" 
+					name="btnsearchbridges" 
+					data-role="button" 
+					data-inline="true" 
+					data-mini="true" 
+					data-icon="search"><TMPL_VAR BRIDGES.BUTTON_SEARCH></a>
+				<a href="#popupAdd" 
+					data-rel="popup" 
+					data-position-to="window" 
+					data-transition="pop" 
+					data-mini="true"
+					data-role="button"
+					data-icon="plus" 
+					data-inline="true"><TMPL_VAR BRIDGES.BUTTON_ADD></a>
+				<div class="hint" id="search_hint">&nbsp;</div>
+		</div>
 
-	<table data-role="table" id="temp-table" data-mode="reflow" class="ui-responsive table-stroke">
-	<thead>
-		<tr>
-			<th><TMPL_VAR BRIDGES.LABEL_BRIDGEID></th>
-			<th><center><TMPL_VAR BRIDGES.LABEL_IPADDRESS></center></th>
-			<th><center><TMPL_VAR BRIDGES.LABEL_PORT></center></th>
-			<th><center><TMPL_VAR BRIDGES.LABEL_DISCOVERY></center></th>
-			<th><center><TMPL_VAR BRIDGES.LABEL_STATUS></center></th>
-			<th><center><TMPL_VAR BRIDGES.LABEL_ACTIONS></center></th>
-		</tr>
-	</thead>
-	<tbody>
-		<TMPL_LOOP NAME=BRIDGES>
-			<tr>
-				<td><TMPL_VAR NAME="BRIDGEID"></td>
-				<td><center><TMPL_VAR NAME="IP"></center><br></td>
-				<td><center><TMPL_VAR NAME="PORT"></center><br></td>
-				<td><center><TMPL_VAR NAME="DISCOVERY"></center><br></td>
-				<td><center><TMPL_VAR NAME="STATUS"></center><br></td>
-				<td><center>
-				<a href="#" id="btnbridgeactivate" name="btnbridgeactivate" 
-					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> <TMPL_VAR NAME="BRIDGEID">"
-					data-role="button" data-inline="true" data-mini="true" data-icon="power" data-iconpos="notext"></a>
-				<a href="#" id="btnbridgedelete" name="btnbridgedelete" 
-					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> <TMPL_VAR NAME="BRIDGEID">"
-					data-role="button" data-inline="true" data-mini="true" data-icon="delete" data-iconpos="notext"></a>
-				</center></td>
-			</tr>
-		</TMPL_LOOP>
-	</tbody>
-</table>
-<br>
+		<div style="padding: 0px 0px 50px 0px;"></div>
+
+		<!-- Table -->
+		<div id="data-list"></div>
+		
+		<!-- Popup: Delete Bridge -->
+		<div data-role="popup" id="popupDelete" data-dismissible="true" style="max-width:400px;">
+			<div style="padding: 20px 20px;">
+				<h4 class="ui-title"><TMPL_VAR BRIDGES.HINT_DELETE_BRIDGE> <span id="popupbridgeid"></span>?</h4>
+				<a href="#" id="btndeletebridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+				data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_DELETE></a>
+			</div>
+		</div>
+
+		<!-- Popup: Add manually Bridge -->
+		<div data-role="popup" id="popupAdd" data-dismissible="true" style="max-width:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px;">
+				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_ADD_NEW_BRIDGE></h3>
+				<form>
+					<input type="text" name="bridgeip" id="bridgeip" value="" placeholder="IP Address" data-theme="a">
+					<input type="text" name="bridgeport" id="bridgeport" value="" placeholder="Port" data-theme="a">
+					<input type="text" name="bridgetoken" id="bridgetoken" value="" placeholder="Token" data-theme="a">
+					<button type="submit" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></button>
+    			</form>
+			</div>
+		</div>
+
+		<!-- Popup: Edit Bridge -->
+		<div data-role="popup" id="popupEdit" data-dismissible="true" style="max-width:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px;">
+				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_EDIT_BRIDGE> <span id="popupbridgeidedit"></span></h3>
+				<form>
+					<input type="text" name="bridgeip" id="bridgeip" value="" placeholder="IP Address" data-theme="a">
+					<input type="text" name="bridgeport" id="bridgeport" value="" placeholder="Port" data-theme="a">
+					<input type="text" name="bridgetoken" id="bridgetoken" value="" placeholder="Token" data-theme="a">
+					<a href="#" id="btneditbridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></a>
+    			</form>
+			</div>
+		</div>
+		
+	</div> <!-- main -->
 
 </TMPL_IF>
 
@@ -110,17 +116,17 @@
 
 
 <script>
-// Set language
-var lang = '<TMPL_VAR LANG>';
+// Main form
+var formbridges = '<TMPL_VAR FORM_BRIDGES>';
+var formdevices = '<TMPL_VAR FORM_DEVICES>';
+var formmqtt = '<TMPL_VAR FORM_MQTT>';
 
 $(function() {
-
 	// Check SecurePIN by ajax and load form data
 	$("#check_securepin").click(function(){
 		console.log("Check securepin called");
 		checkSecurePIN();
 	});
-	
 	// Set SecurePIN from session storage
 	$('#securepin').val(sessionStorage.getItem("securePIN"));
 	if( $('#securepin').val() ) {
@@ -128,45 +134,78 @@ $(function() {
 	} else {
 		$("#securepin_block").fadeIn();
 	}
-		
 });
 
 // Search for Bridges
 $('#btnsearchbridges').click( function(e) {
 	console.log("Search for Bridges");
-	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR BRIDGES.SEARCH_WAIT>");
+	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR BRIDGES.HINT_SEARCH_WAIT>");
 	$.ajax( { 
 			type: 'POST',
 			data: { ajax: 'searchbridges' }
 		} )
 	.fail(function( data ) {
-		console.log( "Fail", data );
-		$("#search_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.ERROR_GENERIC>: "+data.statusText);
+		console.log( "searchbridges Fail", data );
+		$("#search_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.HINT_SEARCH_ERROR>: "+data.statusText);
 	})
 	.done(function( data ) {
-		console.log( "Success: ", data );
+		console.log( "searchbridges Success: ", data );
+		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_SEARCH_DONE>");
+		getconfig();
 	})
 	.always(function( data ) {
-		console.log( "Finished" );
+		console.log( "searchbridges Finished" );
 	});
 });
 
-function checkSecurePIN() {
+// Delete Bridges (Question)
+function askDeleteBridge( data ) {
+	$("#popupbridgeid").html(data);
+	$("#btndeletebridge").attr("href", 'javascript:deleteBridge(' + data + ');');
+	$("#popupDelete").popup("open");
+}
 
-	console.log("Checking secure pin");
-	$("#check_securepin").attr("disabled", true);
-	$("#check_hint").attr("style", "color:blue;").html("<TMPL_VAR SECUREPIN.CHECK_WAIT>");
+// Delete Bridges
+function deleteBridge( data ) {
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'checksecpin', secpin: $('#securepin').val() }
+			data: { ajax: 'deletebridge', bridgeid: data }
 		} )
 	.fail(function( data ) {
-		console.log( "Fail", data );
+		console.log( "deletebridge Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "deletebridge Success: ", data );
+		getconfig();
+	})
+	.always(function( data ) {
+		$("#popupDelete").popup("close");
+		console.log( "deletebridge Finished" );
+	});
+}
+
+// Edit Bridges (Question)
+function askEditBridge( data ) {
+	$("#popupbridgeidedit").html(data);
+	$("#btneditbridge").attr("href", 'javascript:editBridge(' + data + ');');
+	$("#popupEdit").popup("open");
+}
+
+function checkSecurePIN() {
+	console.log("Checking SecurePin");
+	$("#check_securepin").attr("disabled", true);
+	$("#check_hint").attr("style", "color:blue;").html("<TMPL_VAR SECUREPIN.CHECK_WAIT>");
+	$.ajax({ 
+			type: 'POST',
+			data: { ajax: 'checksecpin', secpin: $('#securepin').val() }
+	})
+	.fail(function( data ) {
+		console.log( "checksecpin Fail", data );
 		$("#securepin_block").fadeIn();
 		$("#check_hint").attr("style", "color:red").html("<TMPL_VAR SECUREPIN.ERROR_GENERIC>: "+data.statusText);
 	})
 	.done(function( data ) {
-		console.log( "getcred Success", data );
+		console.log( "checksecpin Success", data );
 		if( data.error && data.error != 0 ) {
 			console.log( "Error detected", data.error );
 			data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>';
@@ -174,22 +213,116 @@ function checkSecurePIN() {
 			$("#check_hint").attr("style", "color:red").html(data.message);
 			return;
 		}
-		
 		// Save PIN to session storage
 		sessionStorage.setItem("securePIN", $('#securepin').val());
 		$("#securepin_block").fadeOut();
-		
-		//fillForm( data );
-		
+		// Get config data
+		getconfig();
 		// $("#main_form").fadeIn();
-		$("#main_form").css( 'visibility', 'visible' );
-		
+		$("#main").css( 'visibility', 'visible' );
 	})
 	.always(function( data ) {
-		console.log( "Finished" );
+		console.log( "checksecpin Finished" );
 		$("#check_securepin").attr("disabled", false);
 	});
-	
+}
+
+function getconfig() {
+	// Get Config
+	console.log( "The SecurePIN is: ", $('#securepin').val() );
+	if ( sessionStorage.getItem("securePIN") ) {
+		if ( formbridges ) {
+			console.log( "Get Config for Bridges form" );
+			var form = 'bridges';
+		}
+		if ( formdevices ) {
+			console.log( "Get Config for Devices form" );
+			var form = 'devices';
+		}
+		if ( formmqtt ) {
+			console.log( "Get Config for MQTT form" );
+			var form = 'mqtt';
+		}
+		// Ajax request
+		$.ajax({ 
+			type: 'POST',
+			data: { ajax: 'getconfig', config: form, secpin: $('#securepin').val() }
+		})
+		.fail(function( data ) {
+			console.log( "getconfig Fail", data );
+		})
+		.done(function( data ) {
+			console.log( "getconfig Success", data );
+			if ( formbridges ) {
+				console.log( "Parse Items for Bridges form" );
+				$('#data-list').empty();
+				// Create table
+				var table = $('<table width="100%" data-role="table" id="bridgestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
+				// Add the header row
+				var theader = $('<thead />').appendTo(table);
+					$('<th />', { text: '' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_BRIDGEID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_IPADDRESS>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_PORT>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_TOKEN>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_STATUS>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_ACTIONS>' }).appendTo(theader);
+				// Create table body.
+				var tbody = $('<tbody />').appendTo(table);
+				// Add the data rows to the table body.
+				$.each( data, function( index, item){
+					var row = $('<tr />').appendTo(tbody);
+					$('<td />', { html: '<img src="./images/nuki-bridge.svg" height="32"></img>' }).appendTo(row);
+					$('<td />', { text: item.bridgeId }).appendTo(row);
+					$('<td />', { text: item.ip }).appendTo(row);
+					$('<td />', { text: item.port }).appendTo(row);
+					$('<td />', { text: item.token }).appendTo(row);
+					$('<td />', { html: '<span id="status' + item.bridgeId + '"></span>' }).appendTo(row);
+					$.ajax({ 
+						type: 'POST',
+						data: { ajax: 'checkonline', url: item.ip + ':' + item.port }
+					})
+					.fail(function( data ) {
+						console.log( "checkonline Fail", data );
+					})
+					.done(function( data ) {
+						console.log( "checkonline Success", data );
+						if ( data.online ) {
+							$("#status" + item.bridgeId).attr('style', 'color:green').html ("Online");	
+						} else {
+							$("#status" + item.bridgeId).attr('style', 'color:red').html ("Offline");	
+						}
+					})
+					.always(function( data ) {
+						console.log( "checkonline Finished" );
+					});
+					$('<td />', { html: '\
+					<a href="#" id="btnbridgeactivate" name="btnbridgeactivate" \
+					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + item.bridgeId + '" \
+					data-role="button" data-inline="true" data-mini="true" data-icon="power" data-iconpos="notext"></a> \
+					<a href="javascript:askEditBridge(' + item.bridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
+					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + item.bridgeId + '" \
+					data-role="button" data-inline="true" data-mini="true" data-icon="edit" data-iconpos="notext"></a> \
+					<a href="javascript:askDeleteBridge(' + item.bridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
+					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.bridgeId + '" \
+					data-role="button" data-inline="true" data-mini="true" data-icon="delete" data-iconpos="notext"></a> \
+					' }).appendTo(row);
+					$(row).trigger("create");
+				});
+				//$("#data-list").trigger("create");
+			}
+			if ( formdevices ) {
+				console.log( "Parse Item for Devices form" );
+			};
+			if ( formmqtt ) {
+				console.log( "Parse Item for MQTT form" );
+			};
+		})
+		.always(function( data ) {
+			console.log( "getconfig Finished" );
+			$("#search_hint").attr("style", "color:black;").html("&nbsp;");
+		})
+	}
 }
 
 function fillForm ( data ) 
@@ -199,7 +332,6 @@ function fillForm ( data )
 	console.log ("Fill form", data);
 	
 	// SMTP Form
-	
 	if(data.SMTP) {
 		if(data.SMTP.EMAIL) $("#email").val(data.SMTP.EMAIL);
 		if(data.SMTP.HOST) $("#smtpserver").val(data.SMTP.HOST);
@@ -228,5 +360,4 @@ function fillForm ( data )
 	}
 	disable();
 }
-
 </script>

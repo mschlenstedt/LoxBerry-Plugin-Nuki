@@ -75,6 +75,49 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
+	# Delete bridges
+	if( $q->{ajax} eq "deletebridge" ) {
+		print STDERR "Delete Bridge was called.\n" if $debug;
+		$response{error} = &deletebridge($q->{bridgeid});;
+		print JSON::encode_json(\%response);
+	}
+	
+	# Checkonline
+	if( $q->{ajax} eq "checkonline" ) {
+		print STDERR "Checkonline was called.\n" if $debug;
+		$response{online} = &checkonline($q->{url});
+		print JSON::encode_json(\%response);
+	}
+	
+	# Get config
+	if( $q->{ajax} eq "getconfig" ) {
+		print STDERR "Getconfig was called.\n" if $debug;
+		my $content;
+		if ( !$q->{config} ) {
+			print STDERR "No config given.\n" if $debug;
+			$response{error} = "1";
+			$response{message} = "No config given";
+		}
+		elsif ( &checksecpin() ) {
+			print STDERR "Wrong SecurePIN.\n" if $debug;
+			$response{error} = "1";
+			$response{message} = "Wrong SecurePIN";
+		}
+		elsif ( !-e $lbpconfigdir . "/" . $q->{config} . ".json" ) {
+			print STDERR "Config file does not exist.\n" if $debug;
+			$response{error} = "1";
+			$response{message} = "Config file does not exist";
+		}
+		else {
+			# Config
+			my $cfgfile = $lbpconfigdir . "/" . $q->{config} . ".json";
+			print STDERR "Parsing Config: " . $cfgfile . "\n";
+			$content = LoxBerry::System::read_file("$cfgfile");
+			print $content;
+		}
+		print JSON::encode_json(\%response) if !$content;
+	}
+	
 	exit;
 
 ##########################################################################
@@ -112,42 +155,6 @@ exit;
 sub form_bridges
 {
 	$template->param("FORM_BRIDGES", 1);
-
-	# Config
-	my $cfgfile = $lbpconfigdir . "/bridges.json";
-	print STDERR "Parsing Config: " . $cfgfile . "\n";
-	my $jsonobj = LoxBerry::JSON->new();
-	my $cfg = $jsonobj->open(filename => $cfgfile);
-	my @bridges;
-	foreach my $key (keys %$cfg) {
-		print STDERR "Found Bridge: " . $cfg->{$key}->{bridgeId} . "\n";
-		my %bridge;
-		%bridge = (
-			'BRIDGEID' => $cfg->{$key}->{bridgeId},
-			'IP' => $cfg->{$key}->{ip},
-			'PORT' => $cfg->{$key}->{port},
-			'TOKEN' => $cfg->{$key}->{token},
-		);
-		# Check online status
-		my $bridgeurl = "http://" . $cfg->{$key}->{ip} . ":" . $cfg->{$key}->{port} . "/info";
-		print STDERR "Check Online Status: $bridgeurl\n";
-		my $ua = LWP::UserAgent->new(timeout => 10);
-		my $response = $ua->get("$bridgeurl");
-		if ($response->code eq "401") {
-			$bridge{STATUS} = "<span style='color:green'>$L{'BRIDGES.LABEL_ONLINE'}</span>";
-		} else {
-			$bridge{STATUS} = "<span style='font-weight:bold; color:red'>$L{'BRIDGES.LABEL_OFFLINE'}</span>";
-		}
-		# Check discovery status
-		if ( is_enabled($cfg->{$key}->{discovery}) ) {
-			$bridge{DISCOVERY} = $L{'BRIDGES.LABEL_ENABLED'};
-		} else {
-			$bridge{DISCOVERY} = $L{'BRIDGES.LABEL_DISABLED'};
-		}
-
-		push(@bridges, \%bridge);
-	}
-	$template->param("BRIDGES" => \@bridges);
 	return();
 }
 
@@ -158,7 +165,6 @@ sub form_bridges
 
 sub form_print
 {
-
 	# Navbar
 	our %navbar;
 
@@ -248,11 +254,6 @@ sub searchbridges
 					$cfg->{$results->{bridgeId}}->{bridgeId} = $results->{bridgeId};
 					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
 					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
-					if ( $results->{ip} eq "0.0.0.0" ) {
-						$cfg->{$results->{bridgeId}}->{discovery} = "disabled";
-					} else {
-						$cfg->{$results->{bridgeId}}->{discovery} = "enabled";
-					}
 				}
 			}
 			$jsonobj->write();
@@ -266,4 +267,35 @@ sub searchbridges
 		$errors++;
 	}
 	return ($errors);
+}
+
+sub deletebridge
+{
+	my $bridgeid = @_[0];
+	my $errors;
+	if (!$bridgeid) {
+		$errors++;
+	} else {
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		delete $cfg->{$bridgeid};
+		$jsonobj->write();
+	}
+	return ($errors);
+}
+
+sub checkonline
+{
+	my $url = @_[0];
+	my $online;
+	# Check online status
+	my $bridgeurl = "http://" . $url . "/info";
+	print STDERR "Check Online Status: $bridgeurl\n";
+	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $response = $ua->get("$bridgeurl");
+	if ($response->code eq "401") {
+		$online++;
+	}
+	return ($online);
 }
