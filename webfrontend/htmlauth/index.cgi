@@ -29,6 +29,8 @@ use LoxBerry::Web;
 use LoxBerry::JSON;
 use warnings;
 use strict;
+#use Data::Dumper;
+
 
 ##########################################################################
 # Variables
@@ -82,10 +84,58 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
-	# Checkonline
+	# Add bridges
+	if( $q->{ajax} eq "addbridge" ) {
+		print STDERR "Add Bridge was called.\n" if $debug;
+		%response = &addbridge();
+		print JSON::encode_json(\%response);
+	}
+	
+	# Edit bridges
+	if( $q->{ajax} eq "editbridge" ) {
+		print STDERR "Edit Bridge was called.\n" if $debug;
+		%response = &editbridge($q->{bridgeid});
+		print JSON::encode_json(\%response);
+	}
+	
+	# Checkonline Bridges
 	if( $q->{ajax} eq "checkonline" ) {
 		print STDERR "Checkonline was called.\n" if $debug;
 		$response{online} = &checkonline($q->{url});
+		print JSON::encode_json(\%response);
+	}
+
+	# Checktoken Bridges
+	if( $q->{ajax} eq "checktoken" ) {
+		print STDERR "Checktoken was called with Bridge ID " . $q->{bridgeid} . "\n" if $debug;
+		%response = &checktoken($q->{bridgeid});
+		print JSON::encode_json(\%response);
+	}
+	
+	# Get single bridge config
+	if( $q->{ajax} eq "getbridgeconfig" ) {
+		print STDERR "Getbridgeconfig was called.\n" if $debug;
+		if ( !$q->{bridgeid} ) {
+			print STDERR "No bridge id given.\n" if $debug;
+			$response{error} = "1";
+			$response{message} = "No bridge id given";
+		}
+		elsif ( &checksecpin() ) {
+			print STDERR "Wrong SecurePIN.\n" if $debug;
+			$response{error} = "1";
+			$response{message} = "Wrong SecurePIN";
+		}
+		else {
+			# Get config
+			%response = &getbridgeconfig ( $q->{bridgeid} );
+		}
+		print JSON::encode_json(\%response);
+	}
+	
+	# Search Devices
+	if( $q->{ajax} eq "searchdevices" ) {
+		print STDERR "Search for Devices was called.\n" if $debug;
+		$response{error} = &searchdevices();;
 		print JSON::encode_json(\%response);
 	}
 	
@@ -120,6 +170,7 @@ if( $q->{ajax} ) {
 	
 	exit;
 
+	
 ##########################################################################
 # Normal request (not AJAX)
 ##########################################################################
@@ -139,14 +190,16 @@ if( $q->{ajax} ) {
 	$q->{form} = "bridges" if !$q->{form};
 
 	if ($q->{form} eq "bridges") { &form_bridges() }
-	elsif ($q->{form} eq "smartlocks") { &form_smartlocks() }
-	elsif ($q->{form} eq "mqtt") { &form_mqtt() };
+	elsif ($q->{form} eq "devices") { &form_devices() }
+	elsif ($q->{form} eq "mqtt") { &form_mqtt() }
+	elsif ($q->{form} eq "inout") { &form_inout() };
 
 	# Print the form
 	&form_print();
 }
 
 exit;
+
 
 ##########################################################################
 # Form: BRIDGES
@@ -155,6 +208,27 @@ exit;
 sub form_bridges
 {
 	$template->param("FORM_BRIDGES", 1);
+	return();
+}
+
+
+##########################################################################
+# Form: DEVICES
+##########################################################################
+
+sub form_devices
+{
+	$template->param("FORM_DEVICES", 1);
+	return();
+}
+
+##########################################################################
+# Form: MQTT
+##########################################################################
+
+sub form_mqtt
+{
+	$template->param("FORM_MQTT", 1);
 	return();
 }
 
@@ -172,9 +246,9 @@ sub form_print
 	$navbar{1}{URL} = 'index.cgi?form=bridges';
 	$navbar{1}{active} = 1 if $q->{form} eq "bridges";
 	
-	$navbar{2}{Name} = "$L{'COMMON.LABEL_SMARTLOCKS'}";
-	$navbar{2}{URL} = 'index.cgi?form=smartlocks';
-	$navbar{2}{active} = 1 if $q->{form} eq "smartlocks";
+	$navbar{2}{Name} = "$L{'COMMON.LABEL_DEVICES'}";
+	$navbar{2}{URL} = 'index.cgi?form=devices';
+	$navbar{2}{active} = 1 if $q->{form} eq "devices";
 	
 	$navbar{3}{Name} = "$L{'COMMON.LABEL_MQTT'}";
 	$navbar{3}{URL} = 'index.cgi?form=mqtt';
@@ -271,7 +345,7 @@ sub searchbridges
 
 sub deletebridge
 {
-	my $bridgeid = @_[0];
+	my $bridgeid = $_[0];
 	my $errors;
 	if (!$bridgeid) {
 		$errors++;
@@ -285,9 +359,131 @@ sub deletebridge
 	return ($errors);
 }
 
+sub editbridge
+{
+	my $bridgeid = $_[0];
+	my %response;
+	if (!$bridgeid) {
+		print STDERR "No Bridge ID given.\n";
+		$response{error} = 1;
+		$response{message} = "No Bridge ID given.";
+	} else {
+		print STDERR "Editing Bridge data for $bridgeid.\n";
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		if ($cfg->{$bridgeid}) {
+			print STDERR "Found Bridge: Saving new data.\n";
+			$cfg->{$bridgeid}->{ip} = $q->{bridgeip};
+			$cfg->{$bridgeid}->{port} = $q->{bridgeport};
+			$cfg->{$bridgeid}->{token} = $q->{bridgetoken};
+			$jsonobj->write();
+			$response{error} = 0;
+			$response{message} = "Bridge saved successfully.";
+		} else {
+			print STDERR "Bridge does not exist.\n";
+			$response{error} = 1;
+			$response{message} = "Bridge does not exist.";
+		}
+	}
+	return (%response);
+}
+
+sub addbridge
+{
+	my %response;
+	print STDERR "Add new Bridge.\n";
+	if (!$q->{bridgeid}) {
+		print STDERR "No BridgeID given.\n";
+		$response{error} = 1;
+		$response{message} = "No BridgeID given.";
+	} else {
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		if ($cfg->{$q->{bridgeid}}) {
+			print STDERR "Bridge already exists.\n";
+			$response{error} = 1;
+			$response{message} = "Bridge already exists.";
+		} else {
+			$cfg->{$q->{bridgeid}}->{bridgeId} = $q->{bridgeid};
+			$cfg->{$q->{bridgeid}}->{ip} = $q->{bridgeip};
+			$cfg->{$q->{bridgeid}}->{port} = $q->{bridgeport};
+			$cfg->{$q->{bridgeid}}->{token} = $q->{bridgetoken};
+			$jsonobj->write();
+			$response{error} = 0;
+			$response{message} = "New Bridge saved successfully.";
+		}
+	}
+	return (%response);
+}
+
+sub getbridgeconfig
+{
+	my $bridgeid = $_[0];
+	my %response;
+	if (!$bridgeid) {
+		print STDERR "No Bridge ID given.\n";
+		$response{error} = 1;
+		$response{message} = "No Bridge ID given.";
+	} else {
+		print STDERR "Reading config for Bridge $bridgeid.\n";
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		if ($cfg->{$bridgeid}) {
+			print STDERR "Found Bridge: Reading data.\n";
+			$response{ip} = $cfg->{$bridgeid}->{ip};
+			$response{port} = $cfg->{$bridgeid}->{port};
+			$response{token} = $cfg->{$bridgeid}->{token};
+			$response{error} = 0;
+			$response{message} = "Bridge data read successfully.";
+		} else {
+			print STDERR "Bridge does not exist.\n";
+			$response{error} = 1;
+			$response{message} = "Bridge does not exist.";
+		}
+	}
+	return (%response);
+}
+
+sub checktoken
+{
+	my $bridgeid = $_[0];
+	my %response;
+	if (!$bridgeid) {
+		print STDERR "No Bridge ID given.\n";
+		$response{error} = 1;
+		$response{message} = "No Bridge ID given.";
+	} else {
+		print STDERR "Reading config for Bridge $bridgeid.\n";
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		if ($cfg->{$bridgeid}) {
+			print STDERR "Found Bridge: Check token.\n";
+			# Check online status
+			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/info?token=" . $cfg->{$bridgeid}->{token};
+			print STDERR "Check Auth Status: $bridgeurl\n";
+			my $ua = LWP::UserAgent->new(timeout => 10);
+			my $response = $ua->get("$bridgeurl");
+			if ($response->code eq "200") {
+				$response{auth} = 1;
+			} else {
+				$response{auth} = 0;
+			}
+		} else {
+			print STDERR "Bridge does not exist.\n";
+			$response{error} = 1;
+			$response{message} = "Bridge does not exist.";
+		}
+	}
+	return (%response);
+}
+
 sub checkonline
 {
-	my $url = @_[0];
+	my $url = $_[0];
 	my $online;
 	# Check online status
 	my $bridgeurl = "http://" . $url . "/info";
@@ -298,4 +494,53 @@ sub checkonline
 		$online++;
 	}
 	return ($online);
+}
+
+sub searchdevices
+{
+	my $errors;
+	# Devices config
+	my $cfgfiledev = $lbpconfigdir . "/devices.json";
+	unlink ( $cfgfiledev );
+	my $jsonobjdev = LoxBerry::JSON->new();
+	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev);
+	# Bridges config
+	my $cfgfile = $lbpconfigdir . "/bridges.json";
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $cfgfile);
+	# Parsing Bridges
+	foreach my $key (keys %$cfg) {
+		print STDERR "Parsing devices from Bridge " . $cfg->{$key}->{bridgeId} . "\n" if $debug;
+		if (!$cfg->{$key}->{token}) {
+			print STDERR "No token in config - skipping.\n" if $debug;
+			next;
+		} else {
+			# Getting devices of Bridge
+			my $bridgeid = $cfg->{$key}->{bridgeId};
+			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/list?token=" . $cfg->{$bridgeid}->{token};
+			my $ua = LWP::UserAgent->new(timeout => 10);
+			my $response = $ua->get("$bridgeurl");
+			if ($response->code eq "200") {
+				print STDERR "Authenticated successfully.\n" if $debug;
+			} else {
+				print STDERR "Authentication failed - skipping.\n" if $debug;
+				next;
+			}
+			my $jsonobjgetdev = LoxBerry::JSON->new();
+			my $devices = $jsonobjgetdev->parse($response->decoded_content);
+			#print STDERR Dumper($devices);
+			
+			# Parsing Devices
+			for my $results( @{$devices} ){
+				print STDERR "Found Device: " . $results->{nukiId} . "\n" if $debug;
+				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
+				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
+				$cfgdev->{$results->{nukiId}}->{name} = $results->{name};
+				$cfgdev->{$results->{nukiId}}->{deviceType} = $results->{deviceType};
+			}
+			$jsonobjdev->write();
+			print STDERR Dumper($cfgdev);
+		}	
+	}
+	return ($errors);
 }

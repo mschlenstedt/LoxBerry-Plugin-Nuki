@@ -17,32 +17,36 @@
 	</div>
 </div>
 
+<!-- ****************************************************************************************** -->
+
+<style>
+	.listtable td
+	{
+		vertical-align	:middle;
+		text-align		:center;
+	}
+	.lb_flex-item 
+	{	
+		min-width	:450px;
+		width		:450px;
+		max-width	:450px;
+		flex-wrap	:nowrap;
+		margin-top: -10px;  
+	}
+	.lb_flex-item-help 
+	{
+		min-width	:100px;
+		width		:100%;
+		position	:relative;
+		margin-left	:10px;
+	}
+</style>
+
+<!-- ****************************************************************************************** -->
+		
 <TMPL_IF FORM_BRIDGES>
 
 	<div id="main" style="visibility:hidden;"> <!-- style="display:none;" --> 
-
-		<style>
-			.listtable td
-			{
-				vertical-align	:middle;
-				text-align		:center;
-			}
-			.lb_flex-item 
-			{	
-				min-width	:450px;
-				width		:450px;
-				max-width	:450px;
-				flex-wrap	:nowrap;
-				margin-top: -10px;  
-			}
-			.lb_flex-item-help 
-			{
-				min-width	:100px;
-				width		:100%;
-				position	:relative;
-				margin-left	:10px;
-			}
-		</style>
 		
 		<!-- Button area -->
 		<div style="text-align:center;">
@@ -83,11 +87,17 @@
 			<div style="padding: 20px 20px;">
 				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_ADD_NEW_BRIDGE></h3>
 				<form>
-					<input type="text" name="bridgeip" id="bridgeip" value="" placeholder="IP Address" data-theme="a">
-					<input type="text" name="bridgeport" id="bridgeport" value="" placeholder="Port" data-theme="a">
-					<input type="text" name="bridgetoken" id="bridgetoken" value="" placeholder="Token" data-theme="a">
-					<button type="submit" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
-					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></button>
+					<label for="addbridgeid"><TMPL_VAR BRIDGES.LABEL_BRIDGEID></label>
+					<input type="text" name="addbridgeid" id="addbridgeid" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_BRIDGEID>" data-theme="a">
+					<label for="addbridgeip"><TMPL_VAR BRIDGES.LABEL_IPADDRESS></label>
+					<input type="text" name="addbridgeip" id="addbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a">
+					<label for="addbridgeport"><TMPL_VAR BRIDGES.LABEL_PORT></label>
+					<input type="text" name="addbridgeport" id="addbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a">
+					<label for="addbridgetoken"><TMPL_VAR BRIDGES.LABEL_TOKEN></label>
+					<input type="text" name="addbridgetoken" id="addbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a">
+					<a href="javascript:addBridge();" id="btnaddbridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></a>
+					<div class="hint" id="add_hint">&nbsp;</div>
     			</form>
 			</div>
 		</div>
@@ -97,12 +107,25 @@
 			<div style="padding: 20px 20px;">
 				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_EDIT_BRIDGE> <span id="popupbridgeidedit"></span></h3>
 				<form>
-					<input type="text" name="bridgeip" id="bridgeip" value="" placeholder="IP Address" data-theme="a">
-					<input type="text" name="bridgeport" id="bridgeport" value="" placeholder="Port" data-theme="a">
-					<input type="text" name="bridgetoken" id="bridgetoken" value="" placeholder="Token" data-theme="a">
+					<label for="editbridgeip"><TMPL_VAR BRIDGES.LABEL_IPADDRESS></label>
+					<input type="text" name="editbridgeip" id="editbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a">
+					<label for="editbridgeport"><TMPL_VAR BRIDGES.LABEL_PORT></label>
+					<input type="text" name="editbridgeport" id="editbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a">
+					<label for="editbridgetoken"><TMPL_VAR BRIDGES.LABEL_TOKEN></label>
+					<input type="text" name="editbridgetoken" id="editbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a">
 					<a href="#" id="btneditbridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
 					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></a>
+					<div class="hint" id="edit_hint">&nbsp;</div>
     			</form>
+			</div>
+		</div>
+
+		<!-- Popup: Activate Bridge -->
+		<div data-role="popup" id="popupActivate" data-dismissible="true" style="max-width:400px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px; text-align: center;">
+				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_ACTIVATE_BRIDGE> <span id="popupbridgeidactivate"></span></h3>
+				<img src="./images/nuki-bridge-button.svg" height="150"></img>
+				<p><TMPL_VAR BRIDGES.HINT_ACTIVATE_BRIDGE_INSTRUCTIONS></p>
 			</div>
 		</div>
 		
@@ -110,10 +133,153 @@
 
 </TMPL_IF>
 
+<!-- ****************************************************************************************** -->
 
+<TMPL_IF FORM_DEVICES>
 
+	<div id="main" style="visibility:hidden;"> <!-- style="display:none;" --> 
+		
+		<!-- Button area -->
+		<div style="text-align:center;">
+				<a 	href="#" 
+					id="btnsearchdevices" 
+					name="btnsearchdevices" 
+					data-role="button" 
+					data-inline="true" 
+					data-mini="true" 
+					data-icon="search"><TMPL_VAR DEVICES.BUTTON_SEARCH></a>
+				<div class="hint" id="search_hint">&nbsp;</div>
+		</div>
 
+		<div style="padding: 0px 0px 50px 0px;"></div>
 
+		<!-- Table -->
+		<div id="data-list"></div>
+		
+
+		
+	</div> <!-- main -->
+
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
+		
+<TMPL_IF FORM_MQTT>
+
+	<form>
+	
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+			<label	class=	"control-label"
+				for="MQTTPrefix"><TMPL_VAR MQTT.LABEL_MQTTPREFIX></label>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+			<input width="100%" value="" id="MQTTPrefix" name="MQTTPrefix" type="text" class="textfield" 
+			data-validation-rule="special:alphanumeric" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_MQTTPREFIX>">
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+			<TMPL_VAR MQTT.HINT_MQTTPREFIX>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+			<label	class=	"control-label"
+				for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERSERVER></label>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+			<input width="100%" value="" id="BrokerServer" name="BrokerServer" type="text" class="textfield"
+			data-validation-rule="special:hostname_or_ipaddr" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_BROKERSERVER>"> 
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+			<TMPL_VAR MQTT.HINT_BROKERSERVER>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+	
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+			<label	class=	"control-label"
+				for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERPORT></label>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+			<input width="100%" value="" id="BrokerPort" name="BrokerPort" type="text" class="textfield"
+			data-validation-rule="special:number-min-max-value:1:65000" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_BROKERPORT>">			
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+			<TMPL_VAR MQTT.HINT_BROKERPORT>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+	
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+			<label	class=	"control-label"
+				for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERUSERNAME></label>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+			<input width="100%" value="" id="BrokerUsername" name="BrokerUsername" type="text" class="textfield"> 
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+			<TMPL_VAR MQTT.HINT_BROKERUSERNAME>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+	
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+			<label	class=	"control-label"
+				for="BrokerPassword"><TMPL_VAR MQTT.LABEL_BROKERPASSWORD></label>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+			<input width="100%" value="" id="BrokerPassword" name="BrokerPassword" type="text" class="textfield"> 
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+			<TMPL_VAR MQTT.HINT_BROKERPASSWORD>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+
+	<div style="padding: 0px 0px 20px 0px;"></div>
+
+	<div	class="lb_flex-container MQTT">
+		<div	class="lb_flex-item-label">
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item">
+		<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+					data-transition="flow"><TMPL_VAR MQTT.BUTTON_SAVE></a>
+		<div class="hint" id="mqtt_hint">&nbsp;</div>
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+		<div	class="lb_flex-item-help hint">
+		</div>
+		<div	class="lb_flex-item-spacer"></div>
+	</div>
+	
+	</form>
+
+	<script>
+		// Validation
+		validate_enable('#MQTTPrefix');
+		validate_enable('#BrokerServer');
+		validate_enable('#BrokerPort');
+	</script>
+
+</TMPL_IF>
+
+<!-- ****************************************************************************************** -->
 
 <script>
 // Main form
@@ -188,9 +354,142 @@ function deleteBridge( data ) {
 function askEditBridge( data ) {
 	$("#popupbridgeidedit").html(data);
 	$("#btneditbridge").attr("href", 'javascript:editBridge(' + data + ');');
-	$("#popupEdit").popup("open");
+	$.ajax( { 
+		type: 'POST',
+		data: { ajax: 'getbridgeconfig', bridgeid: data, secpin: $('#securepin').val() }
+	} )
+	.fail(function( data ) {
+		console.log( "getbridgeconfig Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "getbridgeconfig Success: ", data );
+		$('#editbridgeip').val( data.ip);
+		$('#editbridgeport').val( data.port);
+		$('#editbridgetoken').val( data.token);
+	})
+	.always(function( data ) {
+		console.log( "editbridge Finished" );
+		$("#edit_hint").attr("style", "color:black").html("");
+		$("#popupEdit").popup("open");
+	});
 }
 
+// Edit Bridges
+function editBridge( data ) {
+	$("#edit_hint").attr("style", "color:blue").html("<TMPL_VAR BRIDGES.HINT_EDIT_SAVING>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'editbridge', 
+					bridgeid: data,
+					bridgeip: $("#editbridgeip").val(),
+					bridgeport: $("#editbridgeport").val(),
+					bridgetoken: $("#editbridgetoken").val(),
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "editbridge Fail", data );
+		$("#edit_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.HINT_EDIT_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "editbridge Success: ", data );
+		$("#edit_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_EDIT_OK>");
+		getconfig();
+		$("#popupEdit").popup("close");
+	})
+	.always(function( data ) {
+		console.log( "editbridge Finished" );
+		$("#edit_hint").attr("style", "color:black").html("");
+	});
+}
+
+// Activate Bridges
+function activateBridge( data ) {
+	$("#popupbridgeidactivate").html(data);
+	$("#popupActivate").popup("open");
+}
+
+// Add Bridges
+function addBridge( data ) {
+	$("#add_hint").attr("style", "color:blue").html("<TMPL_VAR BRIDGES.HINT_EDIT_SAVING>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'addbridge', 
+					bridgeid: $("#addbridgeid").val(),
+					bridgeip: $("#addbridgeip").val(),
+					bridgeport: $("#addbridgeport").val(),
+					bridgetoken: $("#addbridgetoken").val(),
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "addbridge Fail", data );
+		$("#add_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.HINT_EDIT_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "addbridge Success: ", data );
+		$("#add_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_EDIT_OK>");
+		getconfig();
+		$("#popupAdd").popup("close");
+	})
+	.always(function( data ) {
+		console.log( "addbridge Finished" );
+		$("#add_hint").attr("style", "color:black").html("");
+		$("#addbridgeid").val("");
+		$("#addbridgeip").val("");
+		$("#addbridgeport").val("");
+		$("#addbridgetoken").val("");
+	});
+}
+
+// Search for Devices
+$('#btnsearchdevices').click( function(e) {
+	console.log("Search for Devices");
+	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR DEVICES.HINT_SEARCH_WAIT>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'searchdevices' }
+		} )
+	.fail(function( data ) {
+		console.log( "searchdevices Fail", data );
+		$("#search_hint").attr("style", "color:red").html("<TMPL_VAR DEVICES.HINT_SEARCH_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "searchdevices Success: ", data );
+		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR DEVICES.HINT_SEARCH_DONE>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "searchdevices Finished" );
+	});
+});
+
+// Save MQTT Settings
+function saveMQTT() {
+	$("#mqtt_hint").attr("style", "color:blue").html("<TMPL_VAR MQTT.HINT_SAVE_SAVING>");
+	$.ajax( { 
+			type: 'POST',
+			data: { ajax: 'savemqtt', 
+			prefix: $('#MQTTPrefix').val(),
+			server: $('#BrokerServer').val(),
+			port: $('#BrokerPort').val(),
+			username: $('#BrokerUsername').val(),
+			password: $('#BrokerPassword').val(),
+			}
+		} )
+	.fail(function( data ) {
+		console.log( "savemqtt Fail", data );
+		$("#mqtt_hint").attr("style", "color:red").html("<TMPL_VAR MQTT.HINT_SAVE_ERROR>: "+data.statusText);
+	})
+	.done(function( data ) {
+		console.log( "savemqtt Success: ", data );
+		$("#mqtt_hint").attr("style", "color:green").html("<TMPL_VAR MQTT.HINT_SAVE_OK>");
+		getconfig();
+	})
+	.always(function( data ) {
+		console.log( "savenqtt Finished" );
+	});
+}
+
+// SecurePIN
 function checkSecurePIN() {
 	console.log("Checking SecurePin");
 	$("#check_securepin").attr("disabled", true);
@@ -227,6 +526,7 @@ function checkSecurePIN() {
 	});
 }
 
+// Get Config
 function getconfig() {
 	// Get Config
 	console.log( "The SecurePIN is: ", $('#securepin').val() );
@@ -260,7 +560,7 @@ function getconfig() {
 				var table = $('<table width="100%" data-role="table" id="bridgestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
 				// Add the header row
 				var theader = $('<thead />').appendTo(table);
-					$('<th />', { text: '' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_TYPE>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_BRIDGEID>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_IPADDRESS>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR BRIDGES.LABEL_PORT>' }).appendTo(theader);
@@ -276,8 +576,26 @@ function getconfig() {
 					$('<td />', { text: item.bridgeId }).appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
-					$('<td />', { text: item.token }).appendTo(row);
+					$('<td />', { html: '<span id="token' + item.bridgeId + '">' + item.token + '</span>' }).appendTo(row);
 					$('<td />', { html: '<span id="status' + item.bridgeId + '"></span>' }).appendTo(row);
+					if ( item.token ) {
+						$.ajax({ 
+							type: 'POST',
+							data: { ajax: 'checktoken', bridgeid: item.bridgeId }
+						})
+						.fail(function( data ) {
+							console.log( "checktoken Fail", data );
+						})
+						.done(function( data ) {
+							console.log( "checktoken Success", data );
+							if ( data.auth ) {
+								$("#token" + item.bridgeId).attr('style', 'color:green');
+								$("#status" + item.bridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");
+							} else {
+								$("#token" + item.bridgeId).attr('style', 'color:red');
+							}
+						})
+					}
 					$.ajax({ 
 						type: 'POST',
 						data: { ajax: 'checkonline', url: item.ip + ':' + item.port }
@@ -288,16 +606,16 @@ function getconfig() {
 					.done(function( data ) {
 						console.log( "checkonline Success", data );
 						if ( data.online ) {
-							$("#status" + item.bridgeId).attr('style', 'color:green').html ("Online");	
+							$("#status" + item.bridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");	
 						} else {
-							$("#status" + item.bridgeId).attr('style', 'color:red').html ("Offline");	
+							$("#status" + item.bridgeId).attr('style', 'color:red').html ("<TMPL_VAR BRIDGES.LABEL_OFFLINE>");	
 						}
 					})
 					.always(function( data ) {
 						console.log( "checkonline Finished" );
 					});
 					$('<td />', { html: '\
-					<a href="#" id="btnbridgeactivate" name="btnbridgeactivate" \
+					<a href="javascript:activateBridge(' + item.bridgeId + ')" id="btnbridgeactivate" name="btnbridgeactivate" \
 					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + item.bridgeId + '" \
 					data-role="button" data-inline="true" data-mini="true" data-icon="power" data-iconpos="notext"></a> \
 					<a href="javascript:askEditBridge(' + item.bridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
@@ -313,6 +631,28 @@ function getconfig() {
 			}
 			if ( formdevices ) {
 				console.log( "Parse Item for Devices form" );
+				$('#data-list').empty();
+				// Create table
+				var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
+				// Add the header row
+				var theader = $('<thead />').appendTo(table);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_TYPE>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NUKIID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NAME>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_BRIDGEID>' }).appendTo(theader);
+				// Create table body.
+				var tbody = $('<tbody />').appendTo(table);
+				// Add the data rows to the table body.
+				$.each( data, function( index, item){
+					var row = $('<tr />').appendTo(tbody);
+					if ( item.deviceType == '0' ) {
+						$('<td />', { html: '<img src="./images/nuki-smart-lock.svg" height="32"></img>' }).appendTo(row);
+					}
+					$('<td />', { text: item.nukiId }).appendTo(row);
+					$('<td />', { text: item.name }).appendTo(row);
+					$('<td />', { text: item.bridgeId }).appendTo(row);
+				});
+				//$("#data-list").trigger("create");
 			};
 			if ( formmqtt ) {
 				console.log( "Parse Item for MQTT form" );
