@@ -593,7 +593,6 @@ sub searchdevices
 			}
 			my $jsonobjgetdev = LoxBerry::JSON->new();
 			my $devices = $jsonobjgetdev->parse($response->decoded_content);
-			#print STDERR Dumper($devices);
 			
 			# Parsing Devices
 			for my $results( @{$devices} ){
@@ -604,7 +603,6 @@ sub searchdevices
 				$cfgdev->{$results->{nukiId}}->{deviceType} = $results->{deviceType};
 			}
 			$jsonobjdev->write();
-			print STDERR Dumper($cfgdev);
 		}	
 	}
 	return ($errors);
