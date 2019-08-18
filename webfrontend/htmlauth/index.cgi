@@ -54,6 +54,9 @@ my %L;
 # AJAX
 ##########################################################################
 
+# Prevent reading configs from others
+system("chmod 0600 $lbpconfigdir/*.json");
+
 if( $q->{ajax} ) {
 	print STDERR "Ajax call: $q->{ajax}\n" if $debug;
 	
@@ -67,6 +70,13 @@ if( $q->{ajax} ) {
 	if( $q->{ajax} eq "checksecpin" ) {
 		print STDERR "CheckSecurePIN was called.\n" if $debug;
 		$response{error} = &checksecpin();
+		print JSON::encode_json(\%response);
+	}
+
+	# Save MQTT Settings
+	if( $q->{ajax} eq "savemqtt" ) {
+		print STDERR "savemqtt was called.\n" if $debug;
+		$response{error} = &savemqtt();
 		print JSON::encode_json(\%response);
 	}
 	
@@ -88,6 +98,13 @@ if( $q->{ajax} ) {
 	if( $q->{ajax} eq "addbridge" ) {
 		print STDERR "Add Bridge was called.\n" if $debug;
 		%response = &addbridge();
+		print JSON::encode_json(\%response);
+	}
+	
+	# Activate bridges
+	if( $q->{ajax} eq "activatebridge" ) {
+		print STDERR "activatebridge was called.\n" if $debug;
+		%response = &activatebridge($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
@@ -191,8 +208,7 @@ if( $q->{ajax} ) {
 
 	if ($q->{form} eq "bridges") { &form_bridges() }
 	elsif ($q->{form} eq "devices") { &form_devices() }
-	elsif ($q->{form} eq "mqtt") { &form_mqtt() }
-	elsif ($q->{form} eq "inout") { &form_inout() };
+	elsif ($q->{form} eq "mqtt") { &form_mqtt() };
 
 	# Print the form
 	&form_print();
@@ -264,7 +280,7 @@ sub form_print
 	$navbar{5}{target} = '_blank';
 	
 	# Template
-	LoxBerry::Web::lbheader($L{'SETTINGS.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/display/LOXBERRY/MiRobot2Lox-NG", "");
+	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/display/LOXBERRY/MiRobot2Lox-NG", "");
 	print $template->output();
 	LoxBerry::Web::lbfooter();
 	
@@ -418,6 +434,55 @@ sub addbridge
 	return (%response);
 }
 
+sub activatebridge
+{
+	my $bridgeid = $_[0];
+	my %response;
+	if (!$bridgeid) {
+		print STDERR "No Bridge ID given.\n" if $debug;
+		$response{error} = 1;
+		$response{message} = "No Bridge ID given.";
+	} else {
+		print STDERR "Reading config for Bridge $bridgeid.\n" if $debug;
+		my $cfgfile = $lbpconfigdir . "/bridges.json";
+		my $jsonobj = LoxBerry::JSON->new();
+		my $cfg = $jsonobj->open(filename => $cfgfile);
+		if ($cfg->{$bridgeid}) {
+			print STDERR "Found Bridge: Try to auth.\n" if $debug;
+			# Auth
+			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/auth";
+			print STDERR "Call Auth Command: $bridgeurl\n" if $debug;
+			my $ua = LWP::UserAgent->new(timeout => 32);
+			my $response = $ua->get("$bridgeurl");
+			if ($response->code eq "200") {
+				print STDERR "Received answer fron bridge\n" if $debug;
+				my $jsonobjgetdev = LoxBerry::JSON->new();
+				my $resp = $jsonobjgetdev->parse($response->decoded_content);
+				if ($resp->{success}) {
+					print STDERR "Success: " . $resp->{success} . "\n" if $debug;
+					print STDERR "Token is: " . $resp->{token} . "\n" if $debug;
+					$response{auth} = 1;
+					$response{message} = "Auth successfull";
+					$cfg->{$bridgeid}->{token} = $resp->{token};
+					$jsonobj->write();
+				} else {
+					print STDERR "Auth Command failed or timed out\n" if $debug;
+					$response{message} = "Auth Command failed or timed out";
+				}
+			} else {
+				$response{auth} = 0;
+				print STDERR "Auth Command failed\n" if $debug;
+				$response{message} = "Auth Command failed";
+			}
+		} else {
+			print STDERR "Bridge does not exist.\n" if $debug;
+			$response{error} = 1;
+			$response{message} = "Bridge does not exist.";
+		}
+	}
+	return (%response);
+}
+
 sub getbridgeconfig
 {
 	my $bridgeid = $_[0];
@@ -452,19 +517,19 @@ sub checktoken
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		print STDERR "No Bridge ID given.\n";
+		print STDERR "No Bridge ID given.\n" if $debug;
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		print STDERR "Reading config for Bridge $bridgeid.\n";
+		print STDERR "Reading config for Bridge $bridgeid.\n" if $debug;
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$bridgeid}) {
-			print STDERR "Found Bridge: Check token.\n";
+			print STDERR "Found Bridge: Check token.\n" if $debug;
 			# Check online status
 			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/info?token=" . $cfg->{$bridgeid}->{token};
-			print STDERR "Check Auth Status: $bridgeurl\n";
+			print STDERR "Check Auth Status: $bridgeurl\n" if $debug;
 			my $ua = LWP::UserAgent->new(timeout => 10);
 			my $response = $ua->get("$bridgeurl");
 			if ($response->code eq "200") {
@@ -473,7 +538,7 @@ sub checktoken
 				$response{auth} = 0;
 			}
 		} else {
-			print STDERR "Bridge does not exist.\n";
+			print STDERR "Bridge does not exist.\n" if $debug;
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -487,7 +552,7 @@ sub checkonline
 	my $online;
 	# Check online status
 	my $bridgeurl = "http://" . $url . "/info";
-	print STDERR "Check Online Status: $bridgeurl\n";
+	print STDERR "Check Online Status: $bridgeurl\n" if $debug;
 	my $ua = LWP::UserAgent->new(timeout => 10);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code eq "401") {
@@ -542,5 +607,20 @@ sub searchdevices
 			print STDERR Dumper($cfgdev);
 		}	
 	}
+	return ($errors);
+}
+
+sub savemqtt
+{
+	my $errors;
+	my $cfgfile = $lbpconfigdir . "/mqtt.json";
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $cfgfile);
+	$cfg->{topic} = $q->{topic};
+	$cfg->{server} = $q->{server};
+	$cfg->{port} = $q->{port};
+	$cfg->{username} = $q->{username};
+	$cfg->{password} = $q->{password};
+	$jsonobj->write();
 	return ($errors);
 }

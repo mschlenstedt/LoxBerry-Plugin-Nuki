@@ -1,0 +1,7 @@
+{
+   "password" : "loxberry",
+   "port" : "1883",
+   "server" : "localhost",
+   "topic" : "nuki",
+   "username" : "loxberry"
+}
