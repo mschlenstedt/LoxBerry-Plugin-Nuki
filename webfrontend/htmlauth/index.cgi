@@ -50,6 +50,11 @@ my $template;
 my %L;
 
 
+# Globals 
+my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
+my $fullcallbackurl = "http://".lbhostname().":".lbwebserverport().$localcallbackurl;
+
+
 ##########################################################################
 # AJAX
 ##########################################################################
@@ -152,9 +157,17 @@ if( $q->{ajax} ) {
 	# Search Devices
 	if( $q->{ajax} eq "searchdevices" ) {
 		print STDERR "Search for Devices was called.\n" if $debug;
-		$response{error} = &searchdevices();;
+		$response{error} = &searchdevices();
 		print JSON::encode_json(\%response);
 	}
+	
+	# Callback Management
+	if( $q->{ajax} eq "callbacks" ) {
+		print STDERR "Callbacks was called.\n" if $debug;
+		$response{error} = callbacks();
+		print JSON::encode_json(\%response);
+	}
+	
 	
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
@@ -607,6 +620,206 @@ sub searchdevices
 	}
 	return ($errors);
 }
+
+
+sub callbacks
+{
+	my $cfgfiledev = $lbpconfigdir . "/bridges.json";
+	my $jsonobjdev = LoxBerry::JSON->new();
+	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	if(!$cfgdev) {
+		print STDERR "callbacks: Could not open $cfgfiledev - not configured yet?\n" if $debug;
+		return;
+	}
+	
+	# Walk through configured bridges
+	
+	foreach my $key (keys %$cfgdev) {
+		print STDERR "callbacks: Parsing devices from Bridge " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+		if (!$cfgdev->{$key}->{token}) {
+			print STDERR "callbacks: No token in config - skipping.\n" if $debug;
+			next;
+		}
+		
+		my $callbacks = callback_list($cfgdev->{$key});
+		
+		if (!$callbacks) {
+			print STDERR "callbacks: No callbacks for $cfgdev->{$key}\n" if $debug;
+			callback_add($cfgdev->{$key}, $fullcallbackurl);
+			next;
+		}
+		
+		my $checkresult = callback_fuzzycheck($cfgdev->{$key}, $callbacks);
+		if( $checkresult == -1 ) {
+			# Callbacks removed
+			print STDERR "callbacks: A callback was removed - re-checking " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+			redo;
+		} elsif ( $checkresult == 1 ) {
+			# Callback ok
+			print STDERR "callbacks: Callback of " . $cfgdev->{$key}->{bridgeId} . " ok\n" if $debug;
+			next;
+		} else {
+			# Callback missing
+			print STDERR "callbacks: callback missing and will be added for " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+			callback_add($cfgdev->{$key}, $fullcallbackurl);
+			redo;
+		}
+	
+	}
+
+}
+
+
+# Requests the callback list from a given bridgeobj
+sub callback_list
+{
+	my ($bridgeobj) = @_;
+	my $bridgeid = $bridgeobj->{bridgeId};
+	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
+	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $response = $ua->get("$bridgeurl");
+	if ($response->code ne "200") {
+		print STDERR "callback_list: Could not query callback list\n" if $debug;
+		return;
+	}
+	
+	# Parse response
+	my $jsonobj_callback_list = LoxBerry::JSON->new();
+	my $callbacks = $jsonobj_callback_list->parse($response->decoded_content);
+	print STDERR "Response:\n".$response->decoded_content."\n";
+	return $callbacks;
+
+}
+
+# Checks the callbacks for consistency
+# Returns: 	-1 .... Duplicates removed - caller should redo the check
+# 			 0 .... No callback found
+#			 1 .... Callback ok
+sub callback_fuzzycheck
+{
+	my ($bridgeobj, $callbacks) = @_;
+	
+	my $callback_exists = 0;
+	
+	return undef if (!$callbacks);
+	
+	my %checkduplicates;
+	my $itemsremoved = 0;
+	
+	#use Data::Dumper;
+	#print STDERR Dumper($callbacks);
+	#print ref($callbacks->{callbacks})."\n";
+	
+	foreach my $callback ( @{$callbacks->{callbacks}} ) {
+		print STDERR "callback_fuzzycheck: Checking $callback->{url}\n" if $debug;
+		next unless $checkduplicates{$callback->{url}}++;
+		print STDERR "callback_fuzzycheck: URL $callback->{url} is a duplicate";
+		callback_remove($bridgeobj, $callback->{id});
+		$itemsremoved++;
+		last;
+	}
+	
+	# If duplicate callbacks were removed, we need to re-run the query for callbacks
+	if($itemsremoved) {
+		print STDERR "callback_fuzzycheck: Items were removed - return -1\n" if $debug;
+		return -1;
+	}
+	
+	my $callbackok = 0;
+	foreach my $callback ( @{$callbacks->{callbacks}} ) {
+		if($callback->{url} eq $fullcallbackurl) {
+			print STDERR "callback_fuzzycheck: Callback exists\n" if $debug;
+			$callbackok++;
+			last;
+		}
+	}
+	
+	if($callbackok > 0) {
+		print STDERR "callback_fuzzycheck: Callback exists - return 1\n" if $debug;
+		return 1;
+	}
+	print STDERR "callback_fuzzycheck: Callback does not exist - return 0\n" if $debug;
+	return 0;
+
+}
+
+# Removes a callback by it's id
+# IMPORTANT: id of all callbacks may change on remove of an id. It is necessary to re-read the callback list after removal
+# Returns:	1 ........ success
+#			undef .... error
+sub callback_remove
+{
+	my ($bridgeobj, $delid) = @_;
+	
+	if(!$bridgeobj or !$delid) {
+		return undef;
+	}
+	
+	my $bridgeid = $bridgeobj->{bridgeId};
+	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
+	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $response = $ua->get("$bridgeurl");
+	if ($response->code ne "200") {
+		print STDERR "callback_remove: Error removing callback url with id $delid\n" if $debug;
+		return;
+	}
+	
+	# Parse response
+	my $jsonobj_callback_success = LoxBerry::JSON->new();
+	my $success = $jsonobj_callback_success->parse($response->decoded_content);
+	
+	if( is_enabled($success->{success}) ) {
+		return 1;
+	}
+	print STDERR "callback_remove: Error '" . $success->{message} . "' after removing callback urlid $delid\n" if $debug;
+	return undef;
+}
+
+
+# Registers a new callback
+# Returns:	1 ........ success
+#			undef .... error
+sub callback_add
+{
+	my ($bridgeobj, $callbackurl) = @_;
+	
+	print STDERR "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "\n" if $debug;
+	
+	if(!$bridgeobj or !$callbackurl) {
+		print STDERR "callback_add: Missing parameters\n" if $debug;
+		return undef;
+	}
+		
+	# URL-Encode callback url
+	my $callbackurl_enc = URI::Escape::uri_escape($callbackurl);
+		
+	my $bridgeid = $bridgeobj->{bridgeId};
+	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/add?url=" . $callbackurl_enc . "&token=" . $bridgeobj->{token};
+	print STDERR "callback_add: add request: $bridgeurl\n" if $debug;
+	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $response = $ua->get("$bridgeurl");
+	if ($response->code ne "200") {
+		if( $response->code eq "400" ) {
+			print STDERR "callback_add: Error adding callback url. Error 'URL invalid or too long': Callbackurl: $callbackurl_enc\n" if $debug;
+		} elsif( $response->code eq "401" ) {
+			print STDERR "callback_add: Error adding callback url. Token invalid\n" if $debug;
+		} else {
+			print STDERR "callback_add: Unknown error adding callback url $callbackurl_enc HTTP ".$response->code." ".$response->decoded_content."\n" if $debug;
+		}
+		return;
+	}
+	
+	# Parse response
+	my $jsonobj_callback_success = LoxBerry::JSON->new();
+	my $success = $jsonobj_callback_success->parse($response->decoded_content);
+	
+	if( is_enabled($success->{success}) ) {
+		return 1;
+	}
+	print STDERR "callback_add: Error '" . $success->{message} . "' after adding callback url $callbackurl_enc\n" if $debug;
+	return undef;
+}
+
 
 sub savemqtt
 {
