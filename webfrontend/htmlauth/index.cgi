@@ -28,7 +28,6 @@ use LoxBerry::Web;
 use LoxBerry::JSON;
 use LoxBerry::Log;
 use Time::HiRes qw ( sleep );
-use LWP::UserAgent;
 use warnings;
 use strict;
 #use Data::Dumper;
@@ -353,6 +352,8 @@ sub checksecpin
 
 sub searchbridges
 {
+	require LWP::UserAgent;
+
 	my $ua = LWP::UserAgent->new(timeout => 10);
 	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges\n";
 	my $response = $ua->get('https://api.nuki.io/discover/bridges');
@@ -973,6 +974,8 @@ sub api_call
 	
 	# Check for running api call
 	my $fh = api_call_lock();
+	
+	require LWP::UserAgent;
 	
 	my $ua = LWP::UserAgent->new(timeout => $p{timeout});
 	
