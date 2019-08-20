@@ -27,6 +27,7 @@ use LWP::UserAgent;
 use LoxBerry::System;
 use LoxBerry::Web;
 use LoxBerry::JSON;
+use Time::HiRes qw ( sleep );
 use warnings;
 use strict;
 #use Data::Dumper;
@@ -88,14 +89,14 @@ if( $q->{ajax} ) {
 	# Search bridges
 	if( $q->{ajax} eq "searchbridges" ) {
 		print STDERR "Search for Bridges was called.\n" if $debug;
-		$response{error} = &searchbridges();;
+		$response{error} = &searchbridges();
 		print JSON::encode_json(\%response);
 	}
 	
 	# Delete bridges
 	if( $q->{ajax} eq "deletebridge" ) {
 		print STDERR "Delete Bridge was called.\n" if $debug;
-		$response{error} = &deletebridge($q->{bridgeid});;
+		$response{error} = &deletebridge($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
@@ -634,10 +635,21 @@ sub callbacks
 	
 	# Walk through configured bridges
 	
+	my $bridgeloopsmax = 5;
+	my %bridgeloops;
+	
 	foreach my $key (keys %$cfgdev) {
-		print STDERR "callbacks: Parsing devices from Bridge " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+		
+		# If any of the requests loop, we skip it
+		$bridgeloops{$key}++;
+		if( $bridgeloops{$key} > $bridgeloopsmax) {
+			print STDERR "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
+			last;
+		};
+		
+		print STDERR "callbacks: Parsing devices from Bridge " . $key . "\n" if $debug;
 		if (!$cfgdev->{$key}->{token}) {
-			print STDERR "callbacks: No token in config - skipping.\n" if $debug;
+			print STDERR "callbacks: Bridge $key - No token in config, skipping.\n" if $debug;
 			next;
 		}
 		
@@ -646,7 +658,7 @@ sub callbacks
 		if (!$callbacks) {
 			print STDERR "callbacks: No callbacks for $cfgdev->{$key}\n" if $debug;
 			callback_add($cfgdev->{$key}, $fullcallbackurl);
-			next;
+			redo;
 		}
 		
 		my $checkresult = callback_fuzzycheck($cfgdev->{$key}, $callbacks);
@@ -674,9 +686,13 @@ sub callbacks
 sub callback_list
 {
 	my ($bridgeobj) = @_;
+	
+	print STDERR "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."\n" if $debug;
+	sleep 0.1;
+	
 	my $bridgeid = $bridgeobj->{bridgeId};
 	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
-	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $ua = LWP::UserAgent->new(timeout => 20);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
 		print STDERR "callback_list: Could not query callback list\n" if $debug;
@@ -686,7 +702,7 @@ sub callback_list
 	# Parse response
 	my $jsonobj_callback_list = LoxBerry::JSON->new();
 	my $callbacks = $jsonobj_callback_list->parse($response->decoded_content);
-	print STDERR "Response:\n".$response->decoded_content."\n";
+	print STDERR "callback_list: Response: ".$response->decoded_content."\n";
 	return $callbacks;
 
 }
@@ -711,9 +727,9 @@ sub callback_fuzzycheck
 	#print ref($callbacks->{callbacks})."\n";
 	
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
-		print STDERR "callback_fuzzycheck: Checking $callback->{url}\n" if $debug;
+		print STDERR "callback_fuzzycheck: Checking for duplicates $callback->{url}\n" if $debug;
 		next unless $checkduplicates{$callback->{url}}++;
-		print STDERR "callback_fuzzycheck: URL $callback->{url} is a duplicate";
+		print STDERR "callback_fuzzycheck: URL $callback->{url} is a duplicate\n";
 		callback_remove($bridgeobj, $callback->{id});
 		$itemsremoved++;
 		last;
@@ -755,12 +771,16 @@ sub callback_remove
 		return undef;
 	}
 	
+	print STDERR "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid\n" if $debug;
+	sleep 0.1;
+	
 	my $bridgeid = $bridgeobj->{bridgeId};
 	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
-	my $ua = LWP::UserAgent->new(timeout => 10);
+	print STDERR "callback_remove: Request $bridgeurl\n" if $debug;
+	my $ua = LWP::UserAgent->new(timeout => 30);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
-		print STDERR "callback_remove: Error removing callback url with id $delid\n" if $debug;
+		print STDERR "callback_remove: Error removing callback url with id $delid: $response->code $response->decoded_content\n" if $debug;
 		return;
 	}
 	
@@ -784,6 +804,7 @@ sub callback_add
 	my ($bridgeobj, $callbackurl) = @_;
 	
 	print STDERR "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "\n" if $debug;
+	sleep 0.1;
 	
 	if(!$bridgeobj or !$callbackurl) {
 		print STDERR "callback_add: Missing parameters\n" if $debug;
@@ -796,7 +817,7 @@ sub callback_add
 	my $bridgeid = $bridgeobj->{bridgeId};
 	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/add?url=" . $callbackurl_enc . "&token=" . $bridgeobj->{token};
 	print STDERR "callback_add: add request: $bridgeurl\n" if $debug;
-	my $ua = LWP::UserAgent->new(timeout => 10);
+	my $ua = LWP::UserAgent->new(timeout => 30);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
 		if( $response->code eq "400" ) {
