@@ -27,24 +27,23 @@ use LWP::UserAgent;
 use LoxBerry::System;
 use LoxBerry::Web;
 use LoxBerry::JSON;
+use LoxBerry::Log;
 use Time::HiRes qw ( sleep );
 use warnings;
 use strict;
 #use Data::Dumper;
 
-
 ##########################################################################
 # Variables
 ##########################################################################
 
-print STDERR "Nuki index.cgi called.\n";
+my $log;
 
 # Read Form
 my $cgi = CGI->new;
 my $q = $cgi->Vars;
 
 my $version = LoxBerry::System::pluginversion();
-my $debug = 1;
 my $template;
 
 # Language Phrases
@@ -64,7 +63,19 @@ my $fullcallbackurl = "http://".lbhostname().":".lbwebserverport().$localcallbac
 system("chmod 0600 $lbpconfigdir/*.json");
 
 if( $q->{ajax} ) {
-	print STDERR "Ajax call: $q->{ajax}\n" if $debug;
+	
+	## Logging for ajax requests
+	$log = LoxBerry::Log->new (
+		name => 'AJAX',
+		filename => "$lbplogdir/ajax.log",
+		stderr => 1,
+		loglevel => 7,
+		addtime => 1,
+		append => 1,
+		nosession => 1,
+	);
+	
+	LOGSTART "Ajax call: $q->{ajax}";
 	
 	## Handle all ajax requests 
 	require JSON;
@@ -74,77 +85,77 @@ if( $q->{ajax} ) {
 	
 	# CheckSecPin
 	if( $q->{ajax} eq "checksecpin" ) {
-		print STDERR "CheckSecurePIN was called.\n" if $debug;
+		LOGINF "checksecpin: CheckSecurePIN was called.";
 		$response{error} = &checksecpin();
 		print JSON::encode_json(\%response);
 	}
 
 	# Save MQTT Settings
 	if( $q->{ajax} eq "savemqtt" ) {
-		print STDERR "savemqtt was called.\n" if $debug;
+		LOGINF "savemqtt: savemqtt was called.";
 		$response{error} = &savemqtt();
 		print JSON::encode_json(\%response);
 	}
 	
 	# Search bridges
 	if( $q->{ajax} eq "searchbridges" ) {
-		print STDERR "Search for Bridges was called.\n" if $debug;
+		LOGINF "searchbridges: Search for Bridges was called.";
 		$response{error} = &searchbridges();
 		print JSON::encode_json(\%response);
 	}
 	
 	# Delete bridges
 	if( $q->{ajax} eq "deletebridge" ) {
-		print STDERR "Delete Bridge was called.\n" if $debug;
+		LOGINF "deletebridge: Delete Bridge was called.";
 		$response{error} = &deletebridge($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
 	# Add bridges
 	if( $q->{ajax} eq "addbridge" ) {
-		print STDERR "Add Bridge was called.\n" if $debug;
+		LOGINF "addbridge: Add Bridge was called.";
 		%response = &addbridge();
 		print JSON::encode_json(\%response);
 	}
 	
 	# Activate bridges
 	if( $q->{ajax} eq "activatebridge" ) {
-		print STDERR "activatebridge was called.\n" if $debug;
+		LOGINF "activatebridge: activatebridge was called.";
 		%response = &activatebridge($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
 	# Edit bridges
 	if( $q->{ajax} eq "editbridge" ) {
-		print STDERR "Edit Bridge was called.\n" if $debug;
+		LOGINF "editbridge: Edit Bridge was called.";
 		%response = &editbridge($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
 	# Checkonline Bridges
 	if( $q->{ajax} eq "checkonline" ) {
-		print STDERR "Checkonline was called.\n" if $debug;
+		LOGINF "checkonline: Checkonline was called.";
 		$response{online} = &checkonline($q->{url});
 		print JSON::encode_json(\%response);
 	}
 
 	# Checktoken Bridges
 	if( $q->{ajax} eq "checktoken" ) {
-		print STDERR "Checktoken was called with Bridge ID " . $q->{bridgeid} . "\n" if $debug;
+		LOGINF "checktoken: Checktoken was called with Bridge ID " . $q->{bridgeid} . "";
 		%response = &checktoken($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 	
 	# Get single bridge config
 	if( $q->{ajax} eq "getbridgeconfig" ) {
-		print STDERR "Getbridgeconfig was called.\n" if $debug;
+		LOGINF "getbridgeconfig: was called.";
 		if ( !$q->{bridgeid} ) {
-			print STDERR "No bridge id given.\n" if $debug;
+			LOGINF "getbridgeconfig: No bridge id given.";
 			$response{error} = "1";
 			$response{message} = "No bridge id given";
 		}
 		elsif ( &checksecpin() ) {
-			print STDERR "Wrong SecurePIN.\n" if $debug;
+			LOGINF "getbridgeconfig: Wrong SecurePIN.";
 			$response{error} = "1";
 			$response{message} = "Wrong SecurePIN";
 		}
@@ -157,14 +168,14 @@ if( $q->{ajax} ) {
 	
 	# Search Devices
 	if( $q->{ajax} eq "searchdevices" ) {
-		print STDERR "Search for Devices was called.\n" if $debug;
+		LOGINF "searchdevices: Search for Devices was called.";
 		$response{error} = &searchdevices();
 		print JSON::encode_json(\%response);
 	}
 	
 	# Callback Management
 	if( $q->{ajax} eq "callbacks" ) {
-		print STDERR "Callbacks was called.\n" if $debug;
+		LOGINF "callbacks: Callbacks was called.";
 		$response{error} = callbacks();
 		print JSON::encode_json(\%response);
 	}
@@ -172,27 +183,27 @@ if( $q->{ajax} ) {
 	
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
-		print STDERR "Getconfig was called.\n" if $debug;
+		LOGINF "getconfig: Getconfig was called.";
 		my $content;
 		if ( !$q->{config} ) {
-			print STDERR "No config given.\n" if $debug;
+			LOGINF "getconfig: No config given.";
 			$response{error} = "1";
 			$response{message} = "No config given";
 		}
 		elsif ( &checksecpin() ) {
-			print STDERR "Wrong SecurePIN.\n" if $debug;
+			LOGINF "getconfig: Wrong SecurePIN.";
 			$response{error} = "1";
 			$response{message} = "Wrong SecurePIN";
 		}
 		elsif ( !-e $lbpconfigdir . "/" . $q->{config} . ".json" ) {
-			print STDERR "Config file does not exist.\n" if $debug;
+			LOGINF "getconfig: Config file does not exist.";
 			$response{error} = "1";
 			$response{message} = "Config file does not exist";
 		}
 		else {
 			# Config
 			my $cfgfile = $lbpconfigdir . "/" . $q->{config} . ".json";
-			print STDERR "Parsing Config: " . $cfgfile . "\n";
+			LOGINF "Parsing Config: " . $cfgfile . "\n";
 			$content = LoxBerry::System::read_file("$cfgfile");
 			print $content;
 		}
@@ -207,6 +218,17 @@ if( $q->{ajax} ) {
 ##########################################################################
 
 } else {
+	
+	## Logging for serverside webif requests
+	$log = LoxBerry::Log->new (
+		name => 'Webinterface',
+		filename => "$lbplogdir/webinterface.log",
+		stderr => 1,
+		loglevel => 7,
+		addtime => 1
+	);
+
+	LOGSTART "Nuki WebIf";
 	
 	# Init Template
 	$template = HTML::Template->new(
@@ -320,10 +342,10 @@ sub checksecpin
 {
 	my $error;
 	if ( LoxBerry::System::check_securepin($q->{secpin}) ) {
-		print STDERR "The entered securepin is wrong.\n" if $debug;
+		LOGINF "checksecpin: The entered securepin is wrong.";
 		$error = 1;
 	} else {
-		print STDERR "You have entered the correct securepin. Continuing.\n" if $debug;
+		LOGINF "checksecpin: You have entered the correct securepin. Continuing.";
 		$error = 0;
 	}
 	return ($error);
@@ -332,29 +354,29 @@ sub checksecpin
 sub searchbridges
 {
 	my $ua = LWP::UserAgent->new(timeout => 10);
-	print STDERR "Call https://api.nuki.io/discover/bridges\n";
+	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges\n";
 	my $response = $ua->get('https://api.nuki.io/discover/bridges');
 	my $errors;
 
 	if ($response->is_success) {
-		print STDERR "Success: " . $response->status_line . "\n";
-		print STDERR "Response: " . $response->decoded_content . "\n" if $debug;
+		LOGINF "searchbridges: Success: " . $response->status_line . "\n";
+		LOGINF "searchbridges: Response: " . $response->decoded_content . "";
 		my $jsonobjbr = LoxBerry::JSON->new();
 		my $bridges = $jsonobjbr->parse($response->decoded_content);
 		if ( !$bridges->{errorCode} && $bridges->{errorCode} ne "0" ) {$bridges->{errorCode} = "Undef"};
-		print STDERR "ErrorCode: $bridges->{errorCode}\n" if $debug;
+		LOGINF "searchbridges: ErrorCode: $bridges->{errorCode}";
 		if ($bridges->{errorCode} eq "0") {
 			# Config
 			my $cfgfile = $lbpconfigdir . "/bridges.json";
 			my $jsonobj = LoxBerry::JSON->new();
 			my $cfg = $jsonobj->open(filename => $cfgfile);
 			for my $results( @{$bridges->{bridges}} ){
-				print STDERR "Found BridgeID: " . $results->{bridgeId} . "\n" if $debug;
+				LOGINF "searchbridges: Found BridgeID: " . $results->{bridgeId} . "";
 				if ( $cfg->{$results->{bridgeId}} ) {
-					print STDERR "Bridge already exists in Config -> Skipping\n" if $debug;
+					LOGINF "searchbridges: Bridge already exists in Config -> Skipping";
 					next;
 				} else {
-					print STDERR "Bridge does not exist in Config -> Saving\n" if $debug;
+					LOGINF "searchbridges: Bridge does not exist in Config -> Saving";
 					$cfg->{$results->{bridgeId}}->{bridgeId} = $results->{bridgeId};
 					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
 					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
@@ -362,12 +384,12 @@ sub searchbridges
 			}
 			$jsonobj->write();
 		} else {
-			print STDERR "Data Failure - Error Code: " . $bridges->{errorCode} . "\n";
+			LOGINF "searchbridges: Data Failure - Error Code: " . $bridges->{errorCode} . "\n";
 			$errors++;
 		}
 	}
 	else {
-		print STDERR "Get Failure: " . $response->status_line . "\n";
+		LOGINF "searchbridges: Get Failure: " . $response->status_line . "\n";
 		$errors++;
 	}
 	return ($errors);
@@ -394,16 +416,16 @@ sub editbridge
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		print STDERR "No Bridge ID given.\n";
+		LOGINF "editbridge: No Bridge ID given.\n";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		print STDERR "Editing Bridge data for $bridgeid.\n";
+		LOGINF "editbridge: Editing Bridge data for $bridgeid.\n";
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$bridgeid}) {
-			print STDERR "Found Bridge: Saving new data.\n";
+			LOGINF "editbridge: Found Bridge: Saving new data.\n";
 			$cfg->{$bridgeid}->{ip} = $q->{bridgeip};
 			$cfg->{$bridgeid}->{port} = $q->{bridgeport};
 			$cfg->{$bridgeid}->{token} = $q->{bridgetoken};
@@ -411,7 +433,7 @@ sub editbridge
 			$response{error} = 0;
 			$response{message} = "Bridge saved successfully.";
 		} else {
-			print STDERR "Bridge does not exist.\n";
+			LOGINF "editbridge: Bridge does not exist.\n";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -422,9 +444,9 @@ sub editbridge
 sub addbridge
 {
 	my %response;
-	print STDERR "Add new Bridge.\n";
+	LOGINF "addbridge: Add new Bridge.\n";
 	if (!$q->{bridgeid}) {
-		print STDERR "No BridgeID given.\n";
+		LOGINF "addbridge: No BridgeID given.\n";
 		$response{error} = 1;
 		$response{message} = "No BridgeID given.";
 	} else {
@@ -432,7 +454,7 @@ sub addbridge
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$q->{bridgeid}}) {
-			print STDERR "Bridge already exists.\n";
+			LOGINF "addbridge: Bridge already exists.\n";
 			$response{error} = 1;
 			$response{message} = "Bridge already exists.";
 		} else {
@@ -453,43 +475,43 @@ sub activatebridge
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		print STDERR "No Bridge ID given.\n" if $debug;
+		LOGINF "activatebridge: No Bridge ID given.";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		print STDERR "Reading config for Bridge $bridgeid.\n" if $debug;
+		LOGINF "activatebridge: Reading config for Bridge $bridgeid.";
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$bridgeid}) {
-			print STDERR "Found Bridge: Try to auth.\n" if $debug;
+			LOGINF "activatebridge: Found Bridge: Try to auth.";
 			# Auth
 			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/auth";
-			print STDERR "Call Auth Command: $bridgeurl\n" if $debug;
+			LOGINF "activatebridge: Call Auth Command: $bridgeurl";
 			my $ua = LWP::UserAgent->new(timeout => 32);
 			my $response = $ua->get("$bridgeurl");
 			if ($response->code eq "200") {
-				print STDERR "Received answer fron bridge\n" if $debug;
+				LOGINF "activatebridge: Received answer fron bridge";
 				my $jsonobjgetdev = LoxBerry::JSON->new();
 				my $resp = $jsonobjgetdev->parse($response->decoded_content);
 				if ($resp->{success}) {
-					print STDERR "Success: " . $resp->{success} . "\n" if $debug;
-					print STDERR "Token is: " . $resp->{token} . "\n" if $debug;
+					LOGINF "activatebridge: Success: " . $resp->{success} . "";
+					LOGINF "activatebridge: Token is: " . $resp->{token} . "";
 					$response{auth} = 1;
 					$response{message} = "Auth successfull";
 					$cfg->{$bridgeid}->{token} = $resp->{token};
 					$jsonobj->write();
 				} else {
-					print STDERR "Auth Command failed or timed out\n" if $debug;
+					LOGINF "activatebridge: Auth Command failed or timed out";
 					$response{message} = "Auth Command failed or timed out";
 				}
 			} else {
 				$response{auth} = 0;
-				print STDERR "Auth Command failed\n" if $debug;
+				LOGINF "activatebridge: Auth Command failed";
 				$response{message} = "Auth Command failed";
 			}
 		} else {
-			print STDERR "Bridge does not exist.\n" if $debug;
+			LOGINF "activatebridge: Bridge does not exist.";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -502,23 +524,23 @@ sub getbridgeconfig
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		print STDERR "No Bridge ID given.\n";
+		LOGINF "getbridgeconfig: No Bridge ID given.\n";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		print STDERR "Reading config for Bridge $bridgeid.\n";
+		LOGINF "getbridgeconfig: Reading config for Bridge $bridgeid.\n";
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$bridgeid}) {
-			print STDERR "Found Bridge: Reading data.\n";
+			LOGINF "getbridgeconfig: Found Bridge: Reading data.\n";
 			$response{ip} = $cfg->{$bridgeid}->{ip};
 			$response{port} = $cfg->{$bridgeid}->{port};
 			$response{token} = $cfg->{$bridgeid}->{token};
 			$response{error} = 0;
 			$response{message} = "Bridge data read successfully.";
 		} else {
-			print STDERR "Bridge does not exist.\n";
+			LOGINF "getbridgeconfig: Bridge does not exist.\n";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -531,19 +553,19 @@ sub checktoken
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		print STDERR "No Bridge ID given.\n" if $debug;
+		LOGINF "checktoken: No Bridge ID given.";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		print STDERR "Reading config for Bridge $bridgeid.\n" if $debug;
+		LOGINF "checktoken: Reading config for Bridge $bridgeid.";
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
 		if ($cfg->{$bridgeid}) {
-			print STDERR "Found Bridge: Check token.\n" if $debug;
+			LOGINF "checktoken: Found Bridge: Check token.";
 			# Check online status
 			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/info?token=" . $cfg->{$bridgeid}->{token};
-			print STDERR "Check Auth Status: $bridgeurl\n" if $debug;
+			LOGINF "checktoken: Check Auth Status: $bridgeurl";
 			my $ua = LWP::UserAgent->new(timeout => 10);
 			my $response = $ua->get("$bridgeurl");
 			if ($response->code eq "200") {
@@ -552,7 +574,7 @@ sub checktoken
 				$response{auth} = 0;
 			}
 		} else {
-			print STDERR "Bridge does not exist.\n" if $debug;
+			LOGINF "checktoken: Bridge does not exist.";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -566,7 +588,7 @@ sub checkonline
 	my $online;
 	# Check online status
 	my $bridgeurl = "http://" . $url . "/info";
-	print STDERR "Check Online Status: $bridgeurl\n" if $debug;
+	LOGINF "checkonline: Check Online Status: $bridgeurl";
 	my $ua = LWP::UserAgent->new(timeout => 10);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code eq "401") {
@@ -589,9 +611,9 @@ sub searchdevices
 	my $cfg = $jsonobj->open(filename => $cfgfile);
 	# Parsing Bridges
 	foreach my $key (keys %$cfg) {
-		print STDERR "Parsing devices from Bridge " . $cfg->{$key}->{bridgeId} . "\n" if $debug;
+		LOGINF "searchdevices: Parsing devices from Bridge " . $cfg->{$key}->{bridgeId} . "";
 		if (!$cfg->{$key}->{token}) {
-			print STDERR "No token in config - skipping.\n" if $debug;
+			LOGINF "searchdevices: No token in config - skipping.";
 			next;
 		} else {
 			# Getting devices of Bridge
@@ -600,9 +622,9 @@ sub searchdevices
 			my $ua = LWP::UserAgent->new(timeout => 10);
 			my $response = $ua->get("$bridgeurl");
 			if ($response->code eq "200") {
-				print STDERR "Authenticated successfully.\n" if $debug;
+				LOGINF "searchdevices: Authenticated successfully.";
 			} else {
-				print STDERR "Authentication failed - skipping.\n" if $debug;
+				LOGINF "searchdevices: Authentication failed - skipping.";
 				next;
 			}
 			my $jsonobjgetdev = LoxBerry::JSON->new();
@@ -610,7 +632,7 @@ sub searchdevices
 			
 			# Parsing Devices
 			for my $results( @{$devices} ){
-				print STDERR "Found Device: " . $results->{nukiId} . "\n" if $debug;
+				LOGINF "searchdevices: Found Device: " . $results->{nukiId} . "";
 				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
 				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
 				$cfgdev->{$results->{nukiId}}->{name} = $results->{name};
@@ -629,7 +651,7 @@ sub callbacks
 	my $jsonobjdev = LoxBerry::JSON->new();
 	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
 	if(!$cfgdev) {
-		print STDERR "callbacks: Could not open $cfgfiledev - not configured yet?\n" if $debug;
+		LOGINF "callbacks: Could not open $cfgfiledev - not configured yet?";
 		return;
 	}
 	
@@ -643,20 +665,20 @@ sub callbacks
 		# If any of the requests loop, we skip it
 		$bridgeloops{$key}++;
 		if( $bridgeloops{$key} > $bridgeloopsmax) {
-			print STDERR "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
+			LOGINF "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
 			last;
 		};
 		
-		print STDERR "callbacks: Parsing devices from Bridge " . $key . "\n" if $debug;
+		LOGINF "callbacks: Parsing devices from Bridge " . $key . "";
 		if (!$cfgdev->{$key}->{token}) {
-			print STDERR "callbacks: Bridge $key - No token in config, skipping.\n" if $debug;
+			LOGINF "callbacks: Bridge $key - No token in config, skipping.";
 			next;
 		}
 		
 		my $callbacks = callback_list($cfgdev->{$key});
 		
 		if (!$callbacks) {
-			print STDERR "callbacks: No callbacks for $cfgdev->{$key}\n" if $debug;
+			LOGINF "callbacks: No callbacks for $cfgdev->{$key}";
 			callback_add($cfgdev->{$key}, $fullcallbackurl);
 			redo;
 		}
@@ -664,15 +686,15 @@ sub callbacks
 		my $checkresult = callback_fuzzycheck($cfgdev->{$key}, $callbacks);
 		if( $checkresult == -1 ) {
 			# Callbacks removed
-			print STDERR "callbacks: A callback was removed - re-checking " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+			LOGINF "callbacks: A callback was removed - re-checking " . $cfgdev->{$key}->{bridgeId} . "";
 			redo;
 		} elsif ( $checkresult == 1 ) {
 			# Callback ok
-			print STDERR "callbacks: Callback of " . $cfgdev->{$key}->{bridgeId} . " ok\n" if $debug;
+			LOGINF "callbacks: Callback of " . $cfgdev->{$key}->{bridgeId} . " ok";
 			next;
 		} else {
 			# Callback missing
-			print STDERR "callbacks: callback missing and will be added for " . $cfgdev->{$key}->{bridgeId} . "\n" if $debug;
+			LOGINF "callbacks: callback missing and will be added for " . $cfgdev->{$key}->{bridgeId} . "";
 			callback_add($cfgdev->{$key}, $fullcallbackurl);
 			redo;
 		}
@@ -687,7 +709,7 @@ sub callback_list
 {
 	my ($bridgeobj) = @_;
 	
-	print STDERR "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."\n" if $debug;
+	LOGINF "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."";
 	sleep 0.1;
 	
 	my $bridgeid = $bridgeobj->{bridgeId};
@@ -695,14 +717,14 @@ sub callback_list
 	my $ua = LWP::UserAgent->new(timeout => 20);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
-		print STDERR "callback_list: Could not query callback list\n" if $debug;
+		LOGINF "callback_list: Could not query callback list";
 		return;
 	}
 	
 	# Parse response
 	my $jsonobj_callback_list = LoxBerry::JSON->new();
 	my $callbacks = $jsonobj_callback_list->parse($response->decoded_content);
-	print STDERR "callback_list: Response: ".$response->decoded_content."\n";
+	LOGINF "callback_list: Response: ".$response->decoded_content."\n";
 	return $callbacks;
 
 }
@@ -727,9 +749,9 @@ sub callback_fuzzycheck
 	#print ref($callbacks->{callbacks})."\n";
 	
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
-		print STDERR "callback_fuzzycheck: Checking for duplicates $callback->{url}\n" if $debug;
+		LOGINF "callback_fuzzycheck: Checking for duplicates $callback->{url}";
 		next unless $checkduplicates{$callback->{url}}++;
-		print STDERR "callback_fuzzycheck: URL $callback->{url} is a duplicate\n";
+		LOGINF "callback_fuzzycheck: URL $callback->{url} is a duplicate\n";
 		callback_remove($bridgeobj, $callback->{id});
 		$itemsremoved++;
 		last;
@@ -737,24 +759,24 @@ sub callback_fuzzycheck
 	
 	# If duplicate callbacks were removed, we need to re-run the query for callbacks
 	if($itemsremoved) {
-		print STDERR "callback_fuzzycheck: Items were removed - return -1\n" if $debug;
+		LOGINF "callback_fuzzycheck: Items were removed - return -1";
 		return -1;
 	}
 	
 	my $callbackok = 0;
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
 		if($callback->{url} eq $fullcallbackurl) {
-			print STDERR "callback_fuzzycheck: Callback exists\n" if $debug;
+			LOGINF "callback_fuzzycheck: Callback exists";
 			$callbackok++;
 			last;
 		}
 	}
 	
 	if($callbackok > 0) {
-		print STDERR "callback_fuzzycheck: Callback exists - return 1\n" if $debug;
+		LOGINF "callback_fuzzycheck: Callback exists - return 1";
 		return 1;
 	}
-	print STDERR "callback_fuzzycheck: Callback does not exist - return 0\n" if $debug;
+	LOGINF "callback_fuzzycheck: Callback does not exist - return 0";
 	return 0;
 
 }
@@ -771,16 +793,16 @@ sub callback_remove
 		return undef;
 	}
 	
-	print STDERR "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid\n" if $debug;
+	LOGINF "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid";
 	sleep 0.1;
 	
 	my $bridgeid = $bridgeobj->{bridgeId};
 	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
-	print STDERR "callback_remove: Request $bridgeurl\n" if $debug;
+	LOGINF "callback_remove: Request $bridgeurl";
 	my $ua = LWP::UserAgent->new(timeout => 30);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
-		print STDERR "callback_remove: Error removing callback url with id $delid: $response->code $response->decoded_content\n" if $debug;
+		LOGINF "callback_remove: Error removing callback url with id $delid: $response->code $response->decoded_content";
 		return;
 	}
 	
@@ -791,7 +813,7 @@ sub callback_remove
 	if( is_enabled($success->{success}) ) {
 		return 1;
 	}
-	print STDERR "callback_remove: Error '" . $success->{message} . "' after removing callback urlid $delid\n" if $debug;
+	LOGINF "callback_remove: Error '" . $success->{message} . "' after removing callback urlid $delid";
 	return undef;
 }
 
@@ -803,11 +825,11 @@ sub callback_add
 {
 	my ($bridgeobj, $callbackurl) = @_;
 	
-	print STDERR "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "\n" if $debug;
+	LOGINF "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "";
 	sleep 0.1;
 	
 	if(!$bridgeobj or !$callbackurl) {
-		print STDERR "callback_add: Missing parameters\n" if $debug;
+		LOGINF "callback_add: Missing parameters";
 		return undef;
 	}
 		
@@ -816,16 +838,16 @@ sub callback_add
 		
 	my $bridgeid = $bridgeobj->{bridgeId};
 	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/add?url=" . $callbackurl_enc . "&token=" . $bridgeobj->{token};
-	print STDERR "callback_add: add request: $bridgeurl\n" if $debug;
+	LOGINF "callback_add: add request: $bridgeurl";
 	my $ua = LWP::UserAgent->new(timeout => 30);
 	my $response = $ua->get("$bridgeurl");
 	if ($response->code ne "200") {
 		if( $response->code eq "400" ) {
-			print STDERR "callback_add: Error adding callback url. Error 'URL invalid or too long': Callbackurl: $callbackurl_enc\n" if $debug;
+			LOGINF "callback_add: Error adding callback url. Error 'URL invalid or too long': Callbackurl: $callbackurl_enc";
 		} elsif( $response->code eq "401" ) {
-			print STDERR "callback_add: Error adding callback url. Token invalid\n" if $debug;
+			LOGINF "callback_add: Error adding callback url. Token invalid";
 		} else {
-			print STDERR "callback_add: Unknown error adding callback url $callbackurl_enc HTTP ".$response->code." ".$response->decoded_content."\n" if $debug;
+			LOGINF "callback_add: Unknown error adding callback url $callbackurl_enc HTTP ".$response->code." ".$response->decoded_content."";
 		}
 		return;
 	}
@@ -837,9 +859,27 @@ sub callback_add
 	if( is_enabled($success->{success}) ) {
 		return 1;
 	}
-	print STDERR "callback_add: Error '" . $success->{message} . "' after adding callback url $callbackurl_enc\n" if $debug;
+	LOGINF "callback_add: Error '" . $success->{message} . "' after adding callback url $callbackurl_enc";
 	return undef;
 }
+
+
+sub api_call
+{
+	my ($ip, $port, $apiurl, $token, $moreparameters, $timeout) = @_;
+
+	LOG
+	
+	$timeout = $timeout ? $timeout : 10;
+	
+	
+	
+
+
+
+}
+
+
 
 
 sub savemqtt
@@ -856,3 +896,11 @@ sub savemqtt
 	$jsonobj->write();
 	return ($errors);
 }
+
+
+END {
+	if($log) {
+		LOGEND;
+	}
+}
+
