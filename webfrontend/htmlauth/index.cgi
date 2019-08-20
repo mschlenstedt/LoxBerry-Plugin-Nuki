@@ -53,7 +53,7 @@ my %L;
 # Globals 
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
 my $fullcallbackurl = "http://".lbhostname().":".lbwebserverport().$localcallbackurl;
-
+my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
 
 ##########################################################################
 # AJAX
@@ -746,7 +746,6 @@ sub callback_list
 	my ($bridgeobj) = @_;
 	
 	LOGINF "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."";
-	sleep 0.1;
 	
 	# my $bridgeid = $bridgeobj->{bridgeId};
 	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
@@ -838,7 +837,6 @@ sub callback_remove
 	}
 	
 	LOGINF "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid";
-	sleep 0.1;
 	
 	# my $bridgeid = $bridgeobj->{bridgeId};
 	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
@@ -880,7 +878,6 @@ sub callback_add
 	my ($bridgeobj, $callbackurl) = @_;
 	
 	LOGINF "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "";
-	sleep 0.1;
 	
 	if(!$bridgeobj or !$callbackurl) {
 		LOGINF "callback_add: Missing parameters";
@@ -974,6 +971,9 @@ sub api_call
 		return undef;
 	}
 	
+	# Check for running api call
+	my $fh = api_call_lock();
+	
 	my $ua = LWP::UserAgent->new(timeout => $p{timeout});
 	
 	# Build request url
@@ -1004,8 +1004,44 @@ sub api_call
 		LOGERR "api_call: Response: " . $response->decoded_content if ($response->decoded_content);
 	}
 	
+	api_call_unlock($fh);
+	
 	return $response;
 
+}
+
+sub api_call_lock
+{
+
+	CORE::open(my $fh, '>', $nuki_locking_file);
+	my $starttime = Time::HiRes::time;
+	my $lockstate;
+	while ( !$lockstate or Time::HiRes::time > ($starttime+20) ) {
+		$lockstate = flock($fh, 2);
+		if (!$lockstate) {
+			LOGINF "api_call_lock: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds...";
+			sleep 0.05;
+		}
+	}
+	if ( !$lockstate ) {
+		LOGERR "api_call_lock: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds";
+		return undef;
+	} else {
+		LOGOK "api_call_lock: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds";
+	}
+	sleep 0.05;
+	return $fh;
+
+}
+
+sub api_call_unlock
+{
+	my $fh = shift;
+
+	my $unlock = CORE::close($fh);
+	LOGOK "api_call_unlock: call_api closed/unlocked" if ($unlock);
+	LOGERR "api_call_unlock: Could not close/unlock" if (!$unlock);
+	
 }
 
 ####################################################################
