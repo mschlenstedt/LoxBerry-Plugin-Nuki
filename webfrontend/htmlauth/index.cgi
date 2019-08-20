@@ -20,15 +20,15 @@
 # Modules
 ##########################################################################
 
-use Config::Simple '-strict';
-use CGI::Carp qw(fatalsToBrowser);
+# use Config::Simple '-strict';
+# use CGI::Carp qw(fatalsToBrowser);
 use CGI;
-use LWP::UserAgent;
 use LoxBerry::System;
 use LoxBerry::Web;
 use LoxBerry::JSON;
 use LoxBerry::Log;
 use Time::HiRes qw ( sleep );
+use LWP::UserAgent;
 use warnings;
 use strict;
 #use Data::Dumper;
@@ -203,7 +203,7 @@ if( $q->{ajax} ) {
 		else {
 			# Config
 			my $cfgfile = $lbpconfigdir . "/" . $q->{config} . ".json";
-			LOGINF "Parsing Config: " . $cfgfile . "\n";
+			LOGINF "Parsing Config: " . $cfgfile;
 			$content = LoxBerry::System::read_file("$cfgfile");
 			print $content;
 		}
@@ -486,10 +486,19 @@ sub activatebridge
 		if ($cfg->{$bridgeid}) {
 			LOGINF "activatebridge: Found Bridge: Try to auth.";
 			# Auth
-			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/auth";
-			LOGINF "activatebridge: Call Auth Command: $bridgeurl";
-			my $ua = LWP::UserAgent->new(timeout => 32);
-			my $response = $ua->get("$bridgeurl");
+			# my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/auth";
+			# LOGINF "activatebridge: Call Auth Command: $bridgeurl";
+			# my $ua = LWP::UserAgent->new(timeout => 32);
+			# my $response = $ua->get("$bridgeurl");
+			
+			my $response = api_call(
+				ip 		=> $cfg->{$bridgeid}->{ip},
+				port	=> $cfg->{$bridgeid}->{port},
+				apiurl	=> '/auth',
+				timeout	=> 32
+			);
+			
+			
 			if ($response->code eq "200") {
 				LOGINF "activatebridge: Received answer fron bridge";
 				my $jsonobjgetdev = LoxBerry::JSON->new();
@@ -564,10 +573,18 @@ sub checktoken
 		if ($cfg->{$bridgeid}) {
 			LOGINF "checktoken: Found Bridge: Check token.";
 			# Check online status
-			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/info?token=" . $cfg->{$bridgeid}->{token};
-			LOGINF "checktoken: Check Auth Status: $bridgeurl";
-			my $ua = LWP::UserAgent->new(timeout => 10);
-			my $response = $ua->get("$bridgeurl");
+			#my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/info?token=" . $cfg->{$bridgeid}->{token};
+			#LOGINF "checktoken: Check Auth Status: $bridgeurl";
+			#my $ua = LWP::UserAgent->new(timeout => 10);
+			#my $response = $ua->get("$bridgeurl");
+			
+			my $response = api_call(
+				ip 		=> $cfg->{$bridgeid}->{ip},
+				port	=> $cfg->{$bridgeid}->{port},
+				apiurl	=> '/info',
+				token	=> $cfg->{$bridgeid}->{token}
+			);
+			
 			if ($response->code eq "200") {
 				$response{auth} = 1;
 			} else {
@@ -586,11 +603,22 @@ sub checkonline
 {
 	my $url = $_[0];
 	my $online;
+	
+	my ($host, $port) = split(':', $url, 2);
+	
 	# Check online status
-	my $bridgeurl = "http://" . $url . "/info";
-	LOGINF "checkonline: Check Online Status: $bridgeurl";
-	my $ua = LWP::UserAgent->new(timeout => 10);
-	my $response = $ua->get("$bridgeurl");
+	#my $bridgeurl = "http://" . $url . "/info";
+	# LOGINF "checkonline: Check Online Status: $bridgeurl";
+	# my $ua = LWP::UserAgent->new(timeout => 10);
+	# my $response = $ua->get("$bridgeurl");
+	
+	my $response = api_call(
+				ip 		=> $host,
+				port	=> $port,
+				apiurl	=> '/info',
+			);
+	
+	
 	if ($response->code eq "401") {
 		$online++;
 	}
@@ -617,10 +645,18 @@ sub searchdevices
 			next;
 		} else {
 			# Getting devices of Bridge
-			my $bridgeid = $cfg->{$key}->{bridgeId};
-			my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/list?token=" . $cfg->{$bridgeid}->{token};
-			my $ua = LWP::UserAgent->new(timeout => 10);
-			my $response = $ua->get("$bridgeurl");
+			my $bridgeid = $key;
+			# my $bridgeurl = "http://" . $cfg->{$bridgeid}->{ip} . ":" . $cfg->{$bridgeid}->{port} . "/list?token=" . $cfg->{$bridgeid}->{token};
+			# my $ua = LWP::UserAgent->new(timeout => 10);
+			# my $response = $ua->get("$bridgeurl");
+			
+			my $response = api_call(
+				ip 		=> $cfg->{$bridgeid}->{ip},
+				port	=> $cfg->{$bridgeid}->{port},
+				apiurl	=> '/list',
+				token	=> $cfg->{$bridgeid}->{token}
+			);
+			
 			if ($response->code eq "200") {
 				LOGINF "searchdevices: Authenticated successfully.";
 			} else {
@@ -712,10 +748,18 @@ sub callback_list
 	LOGINF "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."";
 	sleep 0.1;
 	
-	my $bridgeid = $bridgeobj->{bridgeId};
-	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
-	my $ua = LWP::UserAgent->new(timeout => 20);
-	my $response = $ua->get("$bridgeurl");
+	# my $bridgeid = $bridgeobj->{bridgeId};
+	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
+	# my $ua = LWP::UserAgent->new(timeout => 20);
+	# my $response = $ua->get("$bridgeurl");
+	
+	my $response = api_call(
+				ip 		=> $bridgeobj->{ip},
+				port	=> $bridgeobj->{port},
+				apiurl	=> '/callback/list',
+				token	=> $bridgeobj->{token},
+	);
+	
 	if ($response->code ne "200") {
 		LOGINF "callback_list: Could not query callback list";
 		return;
@@ -796,11 +840,21 @@ sub callback_remove
 	LOGINF "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid";
 	sleep 0.1;
 	
-	my $bridgeid = $bridgeobj->{bridgeId};
-	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
-	LOGINF "callback_remove: Request $bridgeurl";
-	my $ua = LWP::UserAgent->new(timeout => 30);
-	my $response = $ua->get("$bridgeurl");
+	# my $bridgeid = $bridgeobj->{bridgeId};
+	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
+	# LOGINF "callback_remove: Request $bridgeurl";
+	# my $ua = LWP::UserAgent->new(timeout => 30);
+	# my $response = $ua->get("$bridgeurl");
+	
+	my $response = api_call(
+				ip 		=> $bridgeobj->{ip},
+				port	=> $bridgeobj->{port},
+				apiurl	=> '/callback/remove',
+				timeout	=> 30,
+				token	=> $bridgeobj->{token},
+				params	=> "id=" . $delid,
+	);
+	
 	if ($response->code ne "200") {
 		LOGINF "callback_remove: Error removing callback url with id $delid: $response->code $response->decoded_content";
 		return;
@@ -836,11 +890,21 @@ sub callback_add
 	# URL-Encode callback url
 	my $callbackurl_enc = URI::Escape::uri_escape($callbackurl);
 		
-	my $bridgeid = $bridgeobj->{bridgeId};
-	my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/add?url=" . $callbackurl_enc . "&token=" . $bridgeobj->{token};
-	LOGINF "callback_add: add request: $bridgeurl";
-	my $ua = LWP::UserAgent->new(timeout => 30);
-	my $response = $ua->get("$bridgeurl");
+	# my $bridgeid = $bridgeobj->{bridgeId};
+	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/add?url=" . $callbackurl_enc . "&token=" . $bridgeobj->{token};
+	# LOGINF "callback_add: add request: $bridgeurl";
+	# my $ua = LWP::UserAgent->new(timeout => 30);
+	# my $response = $ua->get("$bridgeurl");
+	
+	my $response = api_call(
+				ip 		=> $bridgeobj->{ip},
+				port	=> $bridgeobj->{port},
+				apiurl	=> '/callback/add',
+				timeout	=> 30,
+				token	=> $bridgeobj->{token},
+				params	=> "url=" . $callbackurl_enc,
+	);
+	
 	if ($response->code ne "200") {
 		if( $response->code eq "400" ) {
 			LOGINF "callback_add: Error adding callback url. Error 'URL invalid or too long': Callbackurl: $callbackurl_enc";
@@ -864,23 +928,87 @@ sub callback_add
 }
 
 
+##########################################################################
+# NUKI API Calls
+# Use named parameters:
+# 	ip 
+#	port
+#	apiurl (e.g. /auth)
+#	token (leave empty if this is a non-token request)
+# 	params (this are the params for the apicall, without token)
+#	timeout (default is 10)
+# Returns:
+#	http response object
+##########################################################################
+
 sub api_call
 {
-	my ($ip, $port, $apiurl, $token, $moreparameters, $timeout) = @_;
+	
+	my %p = @_;
+	my $errors = 0;
 
-	LOG
+	LOGINF "api_call $p{apiurl}: Called";
 	
-	$timeout = $timeout ? $timeout : 10;
+	# Default values
+	$p{timeout} = defined $p{timeout} ? $p{timeout} : 10;
 	
-	
-	
+	# Verify parts
+	if(!$p{ip}) {
+		LOGERR "api_call: ip missing";
+		$errors++;
+	}
+	if(!$p{port}) {
+		LOGERR "api_call: port missing";
+		$errors++;
+	}
+	if(!$p{apiurl}) {
+		LOGERR "api_call: apiurl missing";
+		$errors++;
+	}
+	if(!$p{token}) {
+		LOGINF "api_call: Unsecured request without token";
+	}
 
-
+	if($errors != 0) {
+		LOGCRIT "api_call: Mandatory parameters missing. Returning undef";
+		return undef;
+	}
+	
+	my $ua = LWP::UserAgent->new(timeout => $p{timeout});
+	
+	# Build request url
+	
+	my @request;
+	
+	push @request, "http://";
+	push @request, $p{ip}, ":", $p{port};
+	push @request, $p{apiurl};
+	if($p{params}) {
+		push @request, "?", $p{params};
+	}
+	if($p{token}) {
+		if($p{params}) {
+			push @request, "&";
+		} else {
+			push @request, "?";
+		}
+		push @request, "token=".$p{token};
+	}
+	
+	my $url = join "", @request;
+	LOGDEB "api_call: Calling request url: $url";
+	my $response = $ua->get($url);
+	
+	if ($response->code eq "401") {
+		LOGERR "api_call: HTTP 401 - The request token is invalid";
+		LOGERR "api_call: Response: " . $response->decoded_content if ($response->decoded_content);
+	}
+	
+	return $response;
 
 }
 
-
-
+####################################################################
 
 sub savemqtt
 {
