@@ -52,7 +52,7 @@ my %L;
 my $lbhostname = lbhostname();
 my $lbip = LoxBerry::System::get_localip();
 my $lbaddress;
-system ("host $lbhostname > /dev/nul");
+system ("host $lbhostname > /dev/null");
 if ($?) {
 	$lbaddress = $lbip;
 } else {
@@ -694,6 +694,9 @@ sub searchdevices
 
 sub callbacks
 {
+	
+	my $lbuid = callback_lbuid_get_from_file();
+	
 	my $cfgfiledev = $lbpconfigdir . "/bridges.json";
 	my $jsonobjdev = LoxBerry::JSON->new();
 	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
@@ -712,8 +715,8 @@ sub callbacks
 		# If any of the requests loop, we skip it
 		$bridgeloops{$key}++;
 		if( $bridgeloops{$key} > $bridgeloopsmax) {
-			LOGINF "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
-			last;
+			LOGERR "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
+			next;
 		};
 		
 		LOGINF "callbacks: Parsing devices from Bridge " . $key . "";
@@ -726,7 +729,7 @@ sub callbacks
 		
 		if (!$callbacks) {
 			LOGINF "callbacks: No callbacks for $cfgdev->{$key}";
-			callback_add($cfgdev->{$key}, $fullcallbackurl);
+			callback_add($cfgdev->{$key}, $fullcallbackurl."?lbuid=".$lbuid);
 			redo;
 		}
 		
@@ -742,7 +745,7 @@ sub callbacks
 		} else {
 			# Callback missing
 			LOGINF "callbacks: callback missing and will be added for " . $cfgdev->{$key}->{bridgeId} . "";
-			callback_add($cfgdev->{$key}, $fullcallbackurl);
+			callback_add($cfgdev->{$key}, $fullcallbackurl."?lbuid=".$lbuid);
 			redo;
 		}
 	
@@ -797,11 +800,13 @@ sub callback_fuzzycheck
 	
 	my %checkduplicates;
 	my $itemsremoved = 0;
+	my $lbuid = callback_lbuid_get_from_file();
 	
 	#use Data::Dumper;
 	#print STDERR Dumper($callbacks);
 	#print ref($callbacks->{callbacks})."\n";
 	
+	# Check for and remove duplicates
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
 		LOGINF "callback_fuzzycheck: Checking for duplicates $callback->{url}";
 		next unless $checkduplicates{$callback->{url}}++;
@@ -819,11 +824,44 @@ sub callback_fuzzycheck
 	
 	my $callbackok = 0;
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
-		if($callback->{url} eq $fullcallbackurl) {
+				
+		## Detection for changed ip/hostname/port
+		# Split url (https://stackoverflow.com/a/26766402/3466839)
+		$callback->{url} =~ /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+		my $hostpart = $4 ? $4 : ""; 		# loxberry-dev.brunnenweg.lan:80 
+		my $pathpart = $5 ? $5 : "";		# /plugins/nukismartlock/callback.php
+		my $parampart = $7 ? $7 : "";		# lbuid=1234
+		
+		if( $hostpart eq $lbaddress.":".lbwebserverport() and $pathpart eq $localcallbackurl and $parampart eq "lbuid=".$lbuid ) {
 			LOGINF "callback_fuzzycheck: Callback exists";
 			$callbackok++;
-			last;
+			next;
 		}
+
+		# Remove plugin callbacks without lbuid
+		if($pathpart eq "/plugins/$lbpplugindir/callback.php" and !$parampart) {
+			LOGINF "callback_fuzzycheck: Callback without lbuid will be removed - return -1";
+			callback_remove($bridgeobj, $callback->{id});
+			return -1;
+		}
+		
+		# Skip callbacks from other LoxBerry's
+		if($pathpart eq "/plugins/$lbpplugindir/callback.php" and $parampart ne "lbuid=".$lbuid) {
+			LOGINF "callback_fuzzycheck: Callback from other LoxBerry skipped";
+			next;
+		}
+
+		# Skip third-party callbacks
+		if($pathpart ne "/plugins/$lbpplugindir/callback.php") {
+			LOGDEB "callback_fuzzycheck: Callback $callback->{url} skipped - not from this plugin";
+			next;
+		}
+		
+		# Now we have found a callback from the plugin, but with different hostname/ip
+		LOGINF "callback_fuzzycheck: Callback with different hostname/ip will be removed - return -1";
+		callback_remove($bridgeobj, $callback->{id});
+		return -1;
+		
 	}
 	
 	if($callbackok > 0) {
@@ -935,6 +973,22 @@ sub callback_add
 	return undef;
 }
 
+sub callback_lbuid_get_from_file
+{
+	my $loxberryidfile = "$lbsconfigdir/loxberryid.cfg";
+	my $lbuid="12345";
+	if( ! -e $loxberryidfile) {
+		LOGERR "callback_lbuid_get_from_file: $loxberryidfile does not exist, returning 12345";
+		return $lbuid;
+	}
+	my $realloxberryid = LoxBerry::System::read_file($loxberryidfile);
+	if( length($realloxberryid) < 11)  {
+		LOGERR "callback_lbuid_get_from_file: $loxberryidfile content seems to be invalid, returning 12345";
+		return $lbuid;
+	}
+	$lbuid = substr $realloxberryid, 5, 5;
+	return $lbuid;
+}
 
 ##########################################################################
 # NUKI API Calls
