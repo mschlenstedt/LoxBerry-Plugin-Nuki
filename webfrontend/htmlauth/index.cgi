@@ -25,7 +25,8 @@
 use CGI;
 use LoxBerry::System;
 use LoxBerry::Web;
-use LoxBerry::JSON;
+# use LoxBerry::JSON; # Available with LoxBerry 2.0
+require "$lbpbindir/libs/LoxBerry/JSON.pm";
 use LoxBerry::Log;
 use Time::HiRes qw ( sleep );
 use warnings;
@@ -755,7 +756,7 @@ sub callback
 
 	
 	if(!$bridgeid) {
-		$brigeerrors++;
+		$bridgeerrors++;
 		$bridgemsg = "callback: Parameter bridgeid missing";
 		LOGERR $bridgemsg;
 		return ($bridgeerrors, $bridgemsg);
