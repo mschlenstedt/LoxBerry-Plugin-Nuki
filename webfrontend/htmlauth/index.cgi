@@ -61,7 +61,8 @@ if ($?) {
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
 my $fullcallbackurl = "http://".$lbaddress.":".lbwebserverport().$localcallbackurl;
 my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
-
+my $cfgfiledev = $lbpconfigdir . "/bridges.json";
+my $glob_lbuid;
 
 ##########################################################################
 # AJAX
@@ -182,10 +183,17 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
-	# Callback Management
+	# Manage callbacks of ALL bridges
 	if( $q->{ajax} eq "callbacks" ) {
 		LOGINF "callbacks: Callbacks was called.";
 		$response{error} = callbacks();
+		print JSON::encode_json(\%response);
+	}
+	
+	# Manage callbacks of a SINGLE bridge
+	if( $q->{ajax} eq "callback" ) {
+		LOGINF "callbacks: Callbacks was called.";
+		($response{error}, $response{message}) = callback($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
 		
@@ -709,13 +717,14 @@ sub searchdevices
 	return ($errors);
 }
 
+#####################################################################
+## Callback routines
+#####################################################################
 
 sub callbacks
 {
 	
-	my $lbuid = callback_lbuid_get_from_file();
 	
-	my $cfgfiledev = $lbpconfigdir . "/bridges.json";
 	my $jsonobjdev = LoxBerry::JSON->new();
 	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
 	if(!$cfgdev) {
@@ -725,52 +734,86 @@ sub callbacks
 	
 	# Walk through configured bridges
 	
+	foreach my $key (keys %$cfgdev) {
+		callback($key);
+	}
+	return undef;
+}
+
+# Manages the callbacks of ONE specific bridge
+# Input: bridgeid
+# Response: 0 error, 1 ok
+sub callback
+{
+	
+	my ($bridgeid) = @_;
+
 	my $bridgeloopsmax = 5;
 	my %bridgeloops;
+	my $bridgeerrors=0;
+	my $bridgemsg;
+
 	
-	foreach my $key (keys %$cfgdev) {
-		
+	if(!$bridgeid) {
+		$brigeerrors++;
+		$bridgemsg = "callback: Parameter bridgeid missing";
+		LOGERR $bridgemsg;
+		return ($bridgeerrors, $bridgemsg);
+	}
+	
+	my $lbuid = callback_lbuid_get_from_file();
+
+	my $jsonobjdev = LoxBerry::JSON->new();
+	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+
+
+
+	# Don't wonder, this is a loop
+	{
 		# If any of the requests loop, we skip it
-		$bridgeloops{$key}++;
-		if( $bridgeloops{$key} > $bridgeloopsmax) {
-			LOGERR "callbacks: Skipping bridge $key after $bridgeloopsmax retries\n";
+		$bridgeloops{$bridgeid}++;
+		if( $bridgeloops{$bridgeid} > $bridgeloopsmax) {
+			$bridgemsg = "callback: Skipping bridge $bridgeid after $bridgeloopsmax retries";
+			LOGERR $bridgemsg;
+			$bridgeerrors++;
 			next;
 		};
 		
-		LOGINF "callbacks: Parsing devices from Bridge " . $key . "";
-		if (!$cfgdev->{$key}->{token}) {
-			LOGINF "callbacks: Bridge $key - No token in config, skipping.";
+		LOGINF "callback: Parsing devices from Bridge " . $bridgeid . "";
+		if (!$cfgdev->{$bridgeid}->{token}) {
+			$bridgemsg = "callback: Bridge $bridgeid - No token in config, skipping.";
+			LOGERR $bridgemsg;
+			$bridgeerrors++;
 			next;
 		}
 		
-		my $callbacks = callback_list($cfgdev->{$key});
+		my $callbacks = callback_list($cfgdev->{$bridgeid});
 		
 		if (!$callbacks) {
-			LOGINF "callbacks: No callbacks for $cfgdev->{$key}";
-			callback_add($cfgdev->{$key}, $fullcallbackurl."?lbuid=".$lbuid);
+			LOGINF "callback: No callbacks for $cfgdev->{$bridgeid}";
+			callback_add($cfgdev->{$bridgeid}, $fullcallbackurl."?lbuid=".$lbuid);
 			redo;
 		}
 		
-		my $checkresult = callback_fuzzycheck($cfgdev->{$key}, $callbacks);
+		my $checkresult = callback_fuzzycheck($cfgdev->{$bridgeid}, $callbacks);
 		if( $checkresult == -1 ) {
 			# Callbacks removed
-			LOGINF "callbacks: A callback was removed - re-checking " . $cfgdev->{$key}->{bridgeId} . "";
+			LOGINF "callback: A callback was removed - re-checking " . $cfgdev->{$bridgeid}->{bridgeId} . "";
 			redo;
 		} elsif ( $checkresult == 1 ) {
 			# Callback ok
-			LOGINF "callbacks: Callback of " . $cfgdev->{$key}->{bridgeId} . " ok";
+			$bridgemsg = "callback: Callback of " . $cfgdev->{$bridgeid}->{bridgeId} . " ok";
+			LOGINF $bridgemsg;
 			next;
 		} else {
 			# Callback missing
-			LOGINF "callbacks: callback missing and will be added for " . $cfgdev->{$key}->{bridgeId} . "";
-			callback_add($cfgdev->{$key}, $fullcallbackurl."?lbuid=".$lbuid);
+			LOGINF "callback: callback missing and will be added for " . $cfgdev->{$bridgeid}->{bridgeId} . "";
+			callback_add($cfgdev->{$bridgeid}, $fullcallbackurl."?lbuid=".$lbuid);
 			redo;
 		}
-	
 	}
-
+	return ($bridgeerrors, $bridgemsg);
 }
-
 
 # Requests the callback list from a given bridgeobj
 sub callback_list
@@ -993,19 +1036,23 @@ sub callback_add
 
 sub callback_lbuid_get_from_file
 {
+	if($glob_lbuid) {
+		return $glob_lbuid;
+	}
+	
 	my $loxberryidfile = "$lbsconfigdir/loxberryid.cfg";
-	my $lbuid="12345";
+	my $glob_lbuid="12345";
 	if( ! -e $loxberryidfile) {
-		LOGERR "callback_lbuid_get_from_file: $loxberryidfile does not exist, returning 12345";
-		return $lbuid;
+		LOGERR "callback_lbuid_get_from_file: $loxberryidfile does not exist, returning $glob_lbuid";
+		return $glob_lbuid;
 	}
 	my $realloxberryid = LoxBerry::System::read_file($loxberryidfile);
 	if( length($realloxberryid) < 11)  {
-		LOGERR "callback_lbuid_get_from_file: $loxberryidfile content seems to be invalid, returning 12345";
-		return $lbuid;
+		LOGERR "callback_lbuid_get_from_file: $loxberryidfile content seems to be invalid, returning $glob_lbuid";
+		return $glob_lbuid;
 	}
-	$lbuid = substr $realloxberryid, 5, 5;
-	return $lbuid;
+	$glob_lbuid = substr $realloxberryid, 5, 5;
+	return $glob_lbuid;
 }
 
 ##########################################################################
