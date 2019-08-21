@@ -50,9 +50,9 @@ my %L;
 
 # Globals 
 my $lbhostname = lbhostname();
-my $lbip = get_localip();
+my $lbip = LoxBerry::System::get_localip();
 my $lbaddress;
-system ("host $lbhostname";
+system ("host $lbhostname");
 if ($?) {
 	$lbaddress = $lbip;
 } else {
