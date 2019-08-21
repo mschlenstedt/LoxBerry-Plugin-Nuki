@@ -52,7 +52,7 @@ my %L;
 my $lbhostname = lbhostname();
 my $lbip = LoxBerry::System::get_localip();
 my $lbaddress;
-system ("host $lbhostname");
+system ("host $lbhostname > /dev/nul");
 if ($?) {
 	$lbaddress = $lbip;
 } else {
