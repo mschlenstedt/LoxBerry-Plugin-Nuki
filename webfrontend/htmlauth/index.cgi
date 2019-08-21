@@ -48,11 +48,20 @@ my $template;
 # Language Phrases
 my %L;
 
-
 # Globals 
+my $lbhostname = lbhostname();
+my $lbip = get_localip();
+my $lbaddress;
+system ("host $lbhostname";
+if ($?) {
+	$lbaddress = $lbip;
+} else {
+	$lbaddress = $lbhostname;
+}
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
-my $fullcallbackurl = "http://".lbhostname().":".lbwebserverport().$localcallbackurl;
+my $fullcallbackurl = "http://".$lbaddress.":".lbwebserverport().$localcallbackurl;
 my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
+
 
 ##########################################################################
 # AJAX
@@ -75,6 +84,7 @@ if( $q->{ajax} ) {
 	);
 	
 	LOGSTART "Ajax call: $q->{ajax}";
+	LOGINF "LoxBerry network address is: $lbaddress";
 	
 	## Handle all ajax requests 
 	require JSON;
