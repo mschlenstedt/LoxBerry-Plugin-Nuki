@@ -188,8 +188,7 @@ if( $q->{ajax} ) {
 		$response{error} = callbacks();
 		print JSON::encode_json(\%response);
 	}
-	
-	
+		
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
 		LOGINF "getconfig: Getconfig was called.";
@@ -219,6 +218,25 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response) if !$content;
 	}
 	
+	exit;
+
+##########################################################################
+# CRONJOB operation
+##########################################################################
+
+} elsif ( is_enabled($q->{cron}) ) {
+
+	## Logging for cronjob requests
+	$log = LoxBerry::Log->new (
+		name => 'Cronjob',
+		stderr => 1,
+		loglevel => 7,
+		addtime => 1,
+	);
+	
+	LOGSTART "Cronjob operation";
+	LOGINF "Starting callback maintenance";
+	callbacks();
 	exit;
 
 	

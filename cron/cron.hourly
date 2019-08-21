@@ -1,0 +1,2 @@
+#!/bin/bash
+perl REPLACELBPHTMLAUTHDIR/index.cgi cron=true &> /dev/null
