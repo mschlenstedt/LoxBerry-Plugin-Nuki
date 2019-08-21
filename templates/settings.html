@@ -183,11 +183,11 @@
 		
 <TMPL_IF FORM_MQTT>
 
-	<div id="main" style="visibility:hidden;"> <!-- style="display:none;" --> 
+	<div id="main" style="visibility:hidden"> <!-- style="display:none;" --> 
 	
 		<form>
 		
-		<div	class="lb_flex-container MQTT">
+		<div class="lb_flex-container MQTT ui-state-disabled">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="MQTTTopic"><TMPL_VAR MQTT.LABEL_MQTTTopic></label>
@@ -204,7 +204,26 @@
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
 	
-		<div	class="lb_flex-container MQTT">
+	<TMPL_IF MQTTGATEWAY_INSTALLED>
+		<div class="lb_flex-container MQTT ui-state-disabled">
+			<div	class="lb_flex-item-label">
+				<label	class=	"control-label"
+					for="MQTTUseMQTTGateway"><TMPL_VAR MQTT.LABEL_MQTTUseMQTTGateway></label>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item">
+					<input type="checkbox" name="MQTTUseMQTTGateway" id="MQTTUseMQTTGateway">
+				</fieldset>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+			<div	class="lb_flex-item-help hint">
+				<TMPL_VAR MQTT.HINT_MQTTUseMQTTGateway>
+			</div>
+			<div	class="lb_flex-item-spacer"></div>
+		</div>
+	</TMPL_IF>
+	
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERSERVER></label>
@@ -221,7 +240,7 @@
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
 		
-		<div	class="lb_flex-container MQTT">
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERPORT></label>
@@ -238,7 +257,7 @@
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
 		
-		<div	class="lb_flex-container MQTT">
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="BrokerUsername"><TMPL_VAR MQTT.LABEL_BROKERUSERNAME></label>
@@ -254,7 +273,7 @@
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
 		
-		<div	class="lb_flex-container MQTT">
+		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
 			<div	class="lb_flex-item-label">
 				<label	class=	"control-label"
 					for="BrokerPassword"><TMPL_VAR MQTT.LABEL_BROKERPASSWORD></label>
@@ -272,12 +291,12 @@
 	
 		<div style="padding: 0px 0px 20px 0px;"></div>
 	
-		<div	class="lb_flex-container MQTT">
+		<div class="lb_flex-container MQTT">
 			<div	class="lb_flex-item-label">
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item">
-			<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
+			<a href="javascript:saveMQTT();" id="btnsavemqtt" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check" 
 						data-transition="flow"><TMPL_VAR MQTT.BUTTON_SAVE></a>
 			<div class="hint" id="mqtt_hint">&nbsp;</div>
 			</div>
@@ -521,12 +540,14 @@ function saveMQTT() {
 	console.log ("Saving", $('#MQTTTopic').val(), $('#BrokerServer').val());
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'savemqtt', 
-			topic: $('#MQTTTopic').val(),
-			server: $('#BrokerServer').val(),
-			port: $('#BrokerPort').val(),
-			username: $('#BrokerUsername').val(),
-			password: $('#BrokerPassword').val(),
+			data: { 
+				ajax: 'savemqtt', 
+				topic: $('#MQTTTopic').val(),
+				usemqttgateway: $('#MQTTUseMQTTGateway').is(":checked"),
+				server: $('#BrokerServer').val(),
+				port: $('#BrokerPort').val(),
+				username: $('#BrokerUsername').val(),
+				password: $('#BrokerPassword').val(),
 			}
 		} )
 	.fail(function( data ) {
@@ -726,6 +747,11 @@ function getconfig() {
 				} else {
 					$("#MQTTTopic").val('nuki');
 				}
+				if(data.usemqttgateway === "true") {
+					$("#MQTTUseMQTTGateway").prop('checked', true).checkboxradio("refresh");
+				} else {
+					$("#MQTTUseMQTTGateway").prop('checked', false).checkboxradio("refresh");
+				}
 				if(data.server) {
 					$("#BrokerServer").val(data.server);
 				} else {
@@ -746,6 +772,10 @@ function getconfig() {
 				} else {
 					$("#BrokerPassword").val('loxberry');
 				}
+				
+				refreshMQTTForm();
+				
+			
 			};
 		})
 		.always(function( data ) {
@@ -754,5 +784,17 @@ function getconfig() {
 		})
 	}
 }
+
+
+function refreshMQTTForm() {
+	console.log("refreshMQTTForm");
+	$(".MQTT").removeClass("ui-state-disabled");
+	if( $("#MQTTUseMQTTGateway").is(":checked") ) 
+		$(".ownbroker").addClass("ui-state-disabled");
+	else 
+		$(".ownbroker").removeClass("ui-state-disabled");
+}
+
+$("#MQTTUseMQTTGateway").on("click", refreshMQTTForm);
 
 </script>

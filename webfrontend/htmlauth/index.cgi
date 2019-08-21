@@ -317,6 +317,8 @@ sub form_devices
 sub form_mqtt
 {
 	$template->param("FORM_MQTT", 1);
+	my $mqttplugindata = LoxBerry::System::plugindata("mqttgateway");
+	$template->param("MQTTGATEWAY_INSTALLED", 1) if($mqttplugindata);
 	return();
 }
 
@@ -1186,6 +1188,7 @@ sub savemqtt
 	my $jsonobj = LoxBerry::JSON->new();
 	my $cfg = $jsonobj->open(filename => $cfgfile);
 	$cfg->{topic} = $q->{topic};
+	$cfg->{usemqttgateway} = $q->{usemqttgateway};
 	$cfg->{server} = $q->{server};
 	$cfg->{port} = $q->{port};
 	$cfg->{username} = $q->{username};
