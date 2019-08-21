@@ -132,6 +132,16 @@
 			</div>
 		</div>
 		
+		<!-- Popup: Bridge Details -->
+		<div data-role="popup" id="popupDetails" data-dismissible="true" style="max-width:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px; text-align: center;">
+				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupbridgeiddetailsheader"></span></h3>
+				<div id="popupbridgeiddetailscontent"></div>
+			</div>
+		</div>
+		
+		
+		
 	</div> <!-- main -->
 
 </TMPL_IF>
@@ -307,6 +317,7 @@ $(function() {
 	} else {
 		$("#securepin_block").fadeIn();
 	}
+
 });
 
 // Search for Bridges
@@ -468,6 +479,16 @@ function addBridge( data ) {
 	});
 }
 
+function bridgeDetails ( bridgeId ) {
+	$("#popupbridgeiddetailsheader").text( bridgeId );
+	$("#popupDetails").popup("open");
+
+
+
+
+}
+
+
 // Search for Devices
 $('#btnsearchdevices').click( function(e) {
 	console.log("Search for Devices");
@@ -602,11 +623,13 @@ function getconfig() {
 				$.each( data, function( index, item){
 					var row = $('<tr />').appendTo(tbody);
 					$('<td />', { html: '<img src="./images/nuki-bridge.svg" height="32"></img>' }).appendTo(row);
-					$('<td />', { text: item.bridgeId }).appendTo(row);
+					$('<td />', { html: '<div class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</div>' }).appendTo(row);
+					//$('<td class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</td>').appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
 					$('<td />', { html: '<span id="token' + item.bridgeId + '">' + item.token + '</span>' }).appendTo(row);
 					$('<td />', { html: '<span id="status' + item.bridgeId + '"></span>' }).appendTo(row);
+					
 					if ( item.token ) {
 						$.ajax({ 
 							type: 'POST',
@@ -656,6 +679,13 @@ function getconfig() {
 					' }).appendTo(row);
 					$(row).trigger("create");
 				});
+
+					// Create event handler for Bridge details
+					$(".bridgedetailslink").on('click', function(e) {
+						console.log("Bridge details", $(this).attr("data-bridgeid"));
+						bridgeDetails( $(this).attr("data-bridgeid") );
+					});
+
 				//$("#data-list").trigger("create");
 			}
 			if ( formdevices ) {
