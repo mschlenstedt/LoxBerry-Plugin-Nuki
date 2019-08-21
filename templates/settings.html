@@ -25,6 +25,10 @@
 		vertical-align	:middle;
 		text-align		:center;
 	}
+	.listtable td img
+	{
+		padding			:5px;
+	}
 	.lb_flex-item 
 	{	
 		min-width	:450px;
@@ -645,14 +649,14 @@ function getconfig() {
 					});
 					$('<td />', { html: '\
 					<a href="javascript:activateBridge(' + item.bridgeId + ')" id="btnbridgeactivate" name="btnbridgeactivate" \
-					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + item.bridgeId + '" \
-					data-role="button" data-inline="true" data-mini="true" data-icon="power" data-iconpos="notext"></a> \
+					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + item.bridgeId + '"> \
+					<img src="./images/link_32.png" height="32"></img></a> \
 					<a href="javascript:askEditBridge(' + item.bridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
-					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + item.bridgeId + '" \
-					data-role="button" data-inline="true" data-mini="true" data-icon="edit" data-iconpos="notext"></a> \
+					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + item.bridgeId + '"> \
+					<img src="./images/gear_32.png" height="32"></img></a></a> \
 					<a href="javascript:askDeleteBridge(' + item.bridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
-					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.bridgeId + '" \
-					data-role="button" data-inline="true" data-mini="true" data-icon="delete" data-iconpos="notext"></a> \
+					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.bridgeId + '"> \
+					<img src="./images/cancel_32.png" height="32"></img></a></a> \
 					' }).appendTo(row);
 					$(row).trigger("create");
 				});
