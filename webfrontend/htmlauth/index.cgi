@@ -193,11 +193,18 @@ if( $q->{ajax} ) {
 	
 	# Manage callbacks of a SINGLE bridge
 	if( $q->{ajax} eq "callback" ) {
-		LOGINF "callbacks: Callbacks was called.";
+		LOGINF "callback: Callback was called.";
 		($response{error}, $response{message}) = callback($q->{bridgeid});
 		print JSON::encode_json(\%response);
 	}
-		
+	
+	# Manage callbacks of a SINGLE bridge
+	if( $q->{ajax} eq "callback_remove_all_from_all" ) {
+		LOGINF "callback_remove_all_from_all: Remove all Callbacks from all bridges was called.";
+		callback_remove_all_from_all();
+		print JSON::encode_json(\%response);
+	}
+	
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
 		LOGINF "getconfig: Getconfig was called.";
@@ -945,7 +952,7 @@ sub callback_remove
 {
 	my ($bridgeobj, $delid) = @_;
 	
-	if(!$bridgeobj or !$delid) {
+	if(!$bridgeobj or ! defined $delid) {
 		return undef;
 	}
 	
@@ -982,6 +989,38 @@ sub callback_remove
 	return undef;
 }
 
+# This removes ALL callbacks (also foreign) from a specific bridgeId
+# Input: bridgeid
+# Returns: undef
+sub callback_remove_all_from_bridge 
+{
+
+	my ($bridgeid) = @_;
+
+	my $jsonobjdev = LoxBerry::JSON->new();
+	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	
+	if( defined $cfgdev->{$bridgeid} and $cfgdev->{$bridgeid}->{token} ) {
+		callback_remove( $cfgdev->{$bridgeid}, "2" );
+		callback_remove( $cfgdev->{$bridgeid}, "1" );
+		callback_remove( $cfgdev->{$bridgeid}, "0" );
+	} else {
+		LOGCRIT "BridgeId not known, or no token defined";
+	}
+}
+
+# This removes ALL callbacks (also foreign) from ALL bridges
+# Input: nothing
+# Returns: nothing
+sub callback_remove_all_from_all {
+
+	my $jsonobjdev = LoxBerry::JSON->new();
+	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	
+	foreach my $bridgeid (keys %$cfgdev) {
+		callback_remove_all_from_bridge($bridgeid);
+	}
+}
 
 # Registers a new callback
 # Returns:	1 ........ success
