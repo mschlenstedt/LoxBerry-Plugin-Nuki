@@ -53,7 +53,7 @@ my %L;
 my $lbhostname = lbhostname();
 my $lbip = LoxBerry::System::get_localip();
 my $lbaddress;
-system ("host $lbhostname > /dev/null");
+system ("host $lbhostname > /dev/null 2>&1");
 if ($?) {
 	$lbaddress = $lbip;
 } else {
@@ -479,6 +479,12 @@ sub editbridge
 			$jsonobj->write();
 			$response{error} = 0;
 			$response{message} = "Bridge saved successfully.";
+			# Check Callbacks
+			my ($cberror, $cbmessage) = callback( $bridgeid );
+			$response{message} = $response{message} . " / " . $cbmessage;
+			if ( $cberror ) {
+				$response{error} = 1;
+			}
 		} else {
 			LOGINF "editbridge: Bridge does not exist.\n";
 			$response{error} = 1;
@@ -512,6 +518,12 @@ sub addbridge
 			$jsonobj->write();
 			$response{error} = 0;
 			$response{message} = "New Bridge saved successfully.";
+			# Check Callbacks
+			my ($cberror, $cbmessage) = callback( $q->{bridgeid} );
+			$response{message} = $response{message} . " / " . $cbmessage;
+			if ( $cberror ) {
+				$response{error} = 1;
+			}
 		}
 	}
 	return (%response);
@@ -539,7 +551,7 @@ sub activatebridge
 			# my $response = $ua->get("$bridgeurl");
 			
 			my $response = api_call(
-				ip 		=> $cfg->{$bridgeid}->{ip},
+				ip 	=> $cfg->{$bridgeid}->{ip},
 				port	=> $cfg->{$bridgeid}->{port},
 				apiurl	=> '/auth',
 				timeout	=> 32
@@ -557,6 +569,13 @@ sub activatebridge
 					$response{message} = "Auth successfull";
 					$cfg->{$bridgeid}->{token} = $resp->{token};
 					$jsonobj->write();
+					# Check Callbacks
+					my ($cberror, $cbmessage) = callback( $bridgeid );
+					$response{message} = $response{message} . " / " . $cbmessage;
+					if ( $cberror ) {
+						$response{error} = 1;
+						$response{auth} = 0;
+					}
 				} else {
 					LOGINF "activatebridge: Auth Command failed or timed out";
 					$response{message} = "Auth Command failed or timed out";
