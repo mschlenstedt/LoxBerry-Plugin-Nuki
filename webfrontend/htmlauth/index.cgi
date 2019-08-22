@@ -24,7 +24,7 @@
 # use CGI::Carp qw(fatalsToBrowser);
 use CGI;
 use LoxBerry::System;
-use LoxBerry::Web;
+# use LoxBerry::Web;
 # use LoxBerry::JSON; # Available with LoxBerry 2.0
 require "$lbpbindir/libs/LoxBerry/JSON.pm";
 use LoxBerry::Log;
@@ -90,7 +90,7 @@ if( $q->{ajax} ) {
 	
 	## Handle all ajax requests 
 	require JSON;
-	require Time::HiRes;
+	# require Time::HiRes;
 	my %response;
 	ajax_header();
 	
@@ -261,6 +261,8 @@ if( $q->{ajax} ) {
 ##########################################################################
 
 } else {
+	
+	require LoxBerry::Web;
 	
 	## Logging for serverside webif requests
 	$log = LoxBerry::Log->new (
@@ -1207,22 +1209,22 @@ sub api_call_lock
 {
 
 	CORE::open(my $fh, '>', $nuki_locking_file);
-	my $starttime = Time::HiRes::time;
+	my $starttime = Time::HiRes::gettimeofday();
 	my $lockstate;
-	while ( !$lockstate or Time::HiRes::time > ($starttime+20) ) {
+	while ( !$lockstate or Time::HiRes::gettimeofday() > ($starttime+20) ) {
 		$lockstate = flock($fh, 2);
 		if (!$lockstate) {
-			LOGINF "api_call_lock: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds...";
-			sleep 0.05;
+			LOGINF "api_call_lock: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds...";
+			Time::HiRes::sleep(0.05);
 		}
 	}
 	if ( !$lockstate ) {
-		LOGERR "api_call_lock: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds";
+		LOGERR "api_call_lock: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
 		return undef;
 	} else {
-		LOGOK "api_call_lock: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::time-$starttime) . " seconds";
+		LOGOK "api_call_lock: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
 	}
-	sleep 0.05;
+	Time::HiRes::sleep(0.05);
 	return $fh;
 
 }
