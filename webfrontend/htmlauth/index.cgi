@@ -421,14 +421,16 @@ sub searchbridges
 			my $cfg = $jsonobj->open(filename => $cfgfile);
 			for my $results( @{$bridges->{bridges}} ){
 				LOGINF "searchbridges: Found BridgeID: " . $results->{bridgeId} . "";
-				if ( $cfg->{$results->{bridgeId}} ) {
+				if ( $cfg->{$results->{discoveryBridgeId}} ) {
 					LOGINF "searchbridges: Bridge already exists in Config -> Skipping";
 					next;
 				} else {
 					LOGINF "searchbridges: Bridge does not exist in Config -> Saving";
-					$cfg->{$results->{bridgeId}}->{bridgeId} = $results->{bridgeId};
+					$cfg->{$results->{bridgeId}}->{discoveryBridgeId} = $results->{bridgeId};
+					$cfg->{$results->{bridgeId}}->{bridgeId} = "";
 					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
 					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
+					
 				}
 			}
 			$jsonobj->write();

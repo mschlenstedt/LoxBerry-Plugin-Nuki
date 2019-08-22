@@ -645,20 +645,21 @@ function getconfig() {
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
 				// Add the data rows to the table body.
-				$.each( data, function( index, item){
+				$.each( data, function( intBridgeId, item){
+					console.log("getconfig loop", intBridgeId, item);
 					var row = $('<tr />').appendTo(tbody);
 					$('<td />', { html: '<img src="./images/nuki-bridge.svg" height="32"></img>' }).appendTo(row);
-					$('<td />', { html: '<div class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</div>' }).appendTo(row);
+					$('<td />', { html: '<div class="bridgedetailslink" data-intbridgeid="'+intBridgeId+'">'+( item.bridgeId ? item.bridgeId : '('+intBridgeId+')') +'</div>' }).appendTo(row);
 					//$('<td class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</td>').appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
-					$('<td />', { html: '<span id="token' + item.bridgeId + '">' + item.token + '</span>' }).appendTo(row);
-					$('<td />', { html: '<span id="status' + item.bridgeId + '"></span>' }).appendTo(row);
+					$('<td />', { html: '<span id="token' + intBridgeId + '">' + item.token + '</span>' }).appendTo(row);
+					$('<td />', { html: '<span id="status' + intBridgeId + '"></span>' }).appendTo(row);
 					
 					if ( item.token ) {
 						$.ajax({ 
 							type: 'POST',
-							data: { ajax: 'checktoken', bridgeid: item.bridgeId }
+							data: { ajax: 'checktoken', bridgeid: intBridgeId }
 						})
 						.fail(function( data ) {
 							console.log( "checktoken Fail", data );
@@ -666,10 +667,10 @@ function getconfig() {
 						.done(function( data ) {
 							console.log( "checktoken Success", data );
 							if ( data.auth ) {
-								$("#token" + item.bridgeId).attr('style', 'color:green');
-								$("#status" + item.bridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");
+								$("#token" + intBridgeId).attr('style', 'color:green');
+								$("#status" + intBridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");
 							} else {
-								$("#token" + item.bridgeId).attr('style', 'color:red');
+								$("#token" + intBridgeId).attr('style', 'color:red');
 							}
 						})
 					}
@@ -683,23 +684,23 @@ function getconfig() {
 					.done(function( data ) {
 						console.log( "checkonline Success", data );
 						if ( data.online ) {
-							$("#status" + item.bridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");	
+							$("#status" + intBridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");	
 						} else {
-							$("#status" + item.bridgeId).attr('style', 'color:red').html ("<TMPL_VAR BRIDGES.LABEL_OFFLINE>");	
+							$("#status" + intBridgeId).attr('style', 'color:red').html ("<TMPL_VAR BRIDGES.LABEL_OFFLINE>");	
 						}
 					})
 					.always(function( data ) {
 						console.log( "checkonline Finished" );
 					});
 					$('<td />', { html: '\
-					<a href="javascript:activateBridge(' + item.bridgeId + ')" id="btnbridgeactivate" name="btnbridgeactivate" \
-					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + item.bridgeId + '"> \
+					<a href="javascript:activateBridge(' + intBridgeId + ')" id="btnbridgeactivate" name="btnbridgeactivate" \
+					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + intBridgeId + '"> \
 					<img src="./images/link_32.png" height="32"></img></a> \
-					<a href="javascript:askEditBridge(' + item.bridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
-					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + item.bridgeId + '"> \
+					<a href="javascript:askEditBridge(' + intBridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
+					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + intBridgeId + '"> \
 					<img src="./images/gear_32.png" height="32"></img></a></a> \
-					<a href="javascript:askDeleteBridge(' + item.bridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
-					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + item.bridgeId + '"> \
+					<a href="javascript:askDeleteBridge(' + intBridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
+					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + intBridgeId + '"> \
 					<img src="./images/cancel_32.png" height="32"></img></a></a> \
 					' }).appendTo(row);
 					$(row).trigger("create");
@@ -727,7 +728,7 @@ function getconfig() {
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
 				// Add the data rows to the table body.
-				$.each( data, function( index, item){
+				$.each( data, function( intBridgeId, item){
 					var row = $('<tr />').appendTo(tbody);
 					if ( item.deviceType == '0' ) {
 						$('<td />', { html: '<img src="./images/nuki-smart-lock.svg" height="32"></img>' }).appendTo(row);
