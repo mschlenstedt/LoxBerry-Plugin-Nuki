@@ -91,8 +91,10 @@
 			<div style="padding: 20px 20px;">
 				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_ADD_NEW_BRIDGE></h3>
 				<form>
+					<!--
 					<label for="addbridgeid"><TMPL_VAR BRIDGES.LABEL_BRIDGEID></label>
 					<input type="text" name="addbridgeid" id="addbridgeid" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_BRIDGEID>" data-theme="a">
+					-->
 					<label for="addbridgeip"><TMPL_VAR BRIDGES.LABEL_IPADDRESS></label>
 					<input type="text" name="addbridgeip" id="addbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a">
 					<label for="addbridgeport"><TMPL_VAR BRIDGES.LABEL_PORT></label>
@@ -476,7 +478,7 @@ function addBridge( data ) {
 	$.ajax( { 
 			type: 'POST',
 			data: { ajax: 'addbridge', 
-					bridgeid: $("#addbridgeid").val(),
+					// bridgeid: $("#addbridgeid").val(),
 					bridgeip: $("#addbridgeip").val(),
 					bridgeport: $("#addbridgeport").val(),
 					bridgetoken: $("#addbridgetoken").val(),

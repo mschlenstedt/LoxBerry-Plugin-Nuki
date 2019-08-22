@@ -427,6 +427,7 @@ sub searchbridges
 				} else {
 					LOGINF "searchbridges: Bridge does not exist in Config -> Saving";
 					$cfg->{$results->{bridgeId}}->{discoveryBridgeId} = $results->{bridgeId};
+					$cfg->{$results->{bridgeId}}->{intBridgeId} = $results->{bridgeId};
 					$cfg->{$results->{bridgeId}}->{bridgeId} = "";
 					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
 					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
@@ -501,12 +502,18 @@ sub editbridge
 sub addbridge
 {
 	my %response;
-	LOGINF "addbridge: Add new Bridge.\n";
+	
 	if (!$q->{bridgeid}) {
-		LOGINF "addbridge: No BridgeID given.\n";
-		$response{error} = 1;
-		$response{message} = "No BridgeID given.";
-	} else {
+	# Generate random internal bridge id (intBridgeId)
+		$q->{bridgeid} = "9" . int(rand(999999999));
+	}
+	
+	LOGINF "addbridge: Add new Bridge.\n";
+	# if (!$q->{bridgeid}) {
+		# LOGINF "addbridge: No BridgeID given.\n";
+		# $response{error} = 1;
+		# $response{message} = "No BridgeID given.";
+	# } else {
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
@@ -515,7 +522,10 @@ sub addbridge
 			$response{error} = 1;
 			$response{message} = "Bridge already exists.";
 		} else {
-			$cfg->{$q->{bridgeid}}->{bridgeId} = $q->{bridgeid};
+			$cfg->{$q->{bridgeid}}->{bridgeId} = "";
+			$cfg->{$q->{bridgeid}}->{discoveryBridgeId} = "";
+			$cfg->{$q->{bridgeid}}->{intBridgeId} = $q->{bridgeid};
+			
 			$cfg->{$q->{bridgeid}}->{ip} = $q->{bridgeip};
 			$cfg->{$q->{bridgeid}}->{port} = $q->{bridgeport};
 			$cfg->{$q->{bridgeid}}->{token} = $q->{bridgetoken};
@@ -529,7 +539,7 @@ sub addbridge
 				$response{error} = 1;
 			}
 		}
-	}
+	# }
 	return (%response);
 }
 
@@ -709,7 +719,7 @@ sub searchdevices
 	my $cfg = $jsonobj->open(filename => $cfgfile);
 	# Parsing Bridges
 	foreach my $key (keys %$cfg) {
-		LOGINF "searchdevices: Parsing devices from Bridge " . $cfg->{$key}->{bridgeId} . "";
+		LOGINF "searchdevices: Parsing devices from Bridge " . $cfg->{$key};
 		if (!$cfg->{$key}->{token}) {
 			LOGINF "searchdevices: No token in config - skipping.";
 			next;
@@ -831,16 +841,16 @@ sub callback
 		my $checkresult = callback_fuzzycheck($cfgdev->{$bridgeid}, $callbacks);
 		if( $checkresult == -1 ) {
 			# Callbacks removed
-			LOGINF "callback: A callback was removed - re-checking " . $cfgdev->{$bridgeid}->{bridgeId} . "";
+			LOGINF "callback: A callback was removed - re-checking " . $bridgeid;
 			redo;
 		} elsif ( $checkresult == 1 ) {
 			# Callback ok
-			$bridgemsg = "callback: Callback of " . $cfgdev->{$bridgeid}->{bridgeId} . " ok";
+			$bridgemsg = "callback: Callback of " . $bridgeid . " ok";
 			LOGINF $bridgemsg;
 			next;
 		} else {
 			# Callback missing
-			LOGINF "callback: callback missing and will be added for " . $cfgdev->{$bridgeid}->{bridgeId} . "";
+			LOGINF "callback: callback missing and will be added for " . $bridgeid;
 			callback_add($cfgdev->{$bridgeid}, $fullcallbackurl."?lbuid=".$lbuid);
 			redo;
 		}
@@ -853,7 +863,7 @@ sub callback_list
 {
 	my ($bridgeobj) = @_;
 	
-	LOGINF "callback_list: Querying callbacks for ".$bridgeobj->{bridgeId}."";
+	LOGINF "callback_list: Querying callbacks for ".$bridgeobj->{intBridgeId}."";
 	
 	# my $bridgeid = $bridgeobj->{bridgeId};
 	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/list?token=" . $bridgeobj->{token};
