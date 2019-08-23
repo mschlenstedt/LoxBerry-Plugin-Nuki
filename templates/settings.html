@@ -139,9 +139,9 @@
 		</div>
 		
 		<!-- Popup: Bridge Details -->
-		<div data-role="popup" id="popupDetails" data-dismissible="true" style="max-width:600px;" data-theme="a" class="ui-corner-all">
-			<div style="padding: 20px 20px; text-align: center;">
-				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupbridgeiddetailsheader"></span></h3>
+		<div data-role="popup" id="popupDetails" data-dismissible="true" style="min-width:600px;max-width:800px;min-height:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px;">
+				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupbridgeiddetailsheader"></span></h3>
 				<div id="popupbridgeiddetailscontent"></div>
 			</div>
 		</div>
@@ -329,6 +329,8 @@ var formbridges = '<TMPL_VAR FORM_BRIDGES>';
 var formdevices = '<TMPL_VAR FORM_DEVICES>';
 var formmqtt = '<TMPL_VAR FORM_MQTT>';
 
+var storedBridges;
+
 $(function() {
 	// Check SecurePIN by ajax and load form data
 	$("#check_securepin").click(function(){
@@ -503,11 +505,60 @@ function addBridge( data ) {
 		$("#addbridgetoken").val("");
 	});
 }
-
-function bridgeDetails ( bridgeId ) {
-	$("#popupbridgeiddetailsheader").text( bridgeId );
+// Show details of bridge
+function bridgeDetails ( intBridgeId ) {
+	$("#popupbridgeiddetailsheader").text( intBridgeId );
 	$("#popupDetails").popup("open");
-
+	detHtmlObj = $("#popupbridgeiddetailscontent");
+	detHtmlObj.empty();
+	detHtmlObj.attr("style", "color:blue;").html("<TMPL_VAR COMMON.HINT_PLEASE_WAIT>");
+	
+	$.ajax({ 
+		type: 'POST',
+		data: { ajax: 'checktoken', bridgeid: intBridgeId }
+	})
+	.fail(function( data ) {
+		detHtmlObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
+		console.log( "checktoken Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "checktoken Success", data );
+		detHtmlObj.attr("style", "color:black;")
+		if ( data.auth ) {
+			currBridgeObj = storedBridges[intBridgeId];
+			detHtmlObj.empty();
+			detHtmlObj.append('<div class="ui-grid-b">');
+			gridObj=$(".ui-grid-b");
+			
+			gridObj.append('<div class="ui-block-a">'+'Network address'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+currBridgeObj.ip+':'+currBridgeObj.port+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'bridgeType'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.bridgeType+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'currentTime'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.currentTime+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'hardwareId'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.ids.hardwareId+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'serverId'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.ids.serverId+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'firmwareVersion'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.versions.firmwareVersion+'</div>');
+			
+			gridObj.append('<div class="ui-block-a">'+'wifiFirmwareVersion'+'</div>');
+			gridObj.append('<div class="ui-block-b">'+data.versions.wifiFirmwareVersion+'</div>');
+			
+			
+			
+			
+		} else {
+			detHtmlObj.empty().attr("style", "color:red;").html("<TMPL_VAR BRIDGES.ERROR_TOKEN_FAILED>");
+			
+		}
+	})
 
 
 
@@ -620,6 +671,7 @@ function getconfig() {
 			console.log( "Get Config for MQTT form" );
 			var form = 'mqtt';
 		}
+		
 		// Ajax request
 		$.ajax({ 
 			type: 'POST',
@@ -637,6 +689,7 @@ function getconfig() {
 				// Check for errors or empty object
 				if ( data.error || jQuery.isEmptyObject(data)) {
 					$('#data-list').html("<TMPL_VAR BRIDGES.ERROR_NO_BRIDGES_DEFINED>");
+					storedBridges = undefined;
 					return;
 				}
 				// Create table
@@ -653,6 +706,7 @@ function getconfig() {
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
 				// Add the data rows to the table body.
+				storedBridges = data;
 				$.each( data, function( intBridgeId, item){
 					console.log("getconfig loop", intBridgeId, item);
 					var row = $('<tr />').appendTo(tbody);
@@ -661,7 +715,7 @@ function getconfig() {
 					//$('<td class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</td>').appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
-					$('<td />', { html: '<span id="token' + intBridgeId + '">' + item.token ? item.token : "" + '</span>' }).appendTo(row);
+					$('<td />', { html: '<span id="token' + intBridgeId + '">' + ( item.token ? item.token : "") + '</span>' }).appendTo(row);
 					$('<td />', { html: '<span id="status' + intBridgeId + '"></span>' }).appendTo(row);
 					
 					if ( item.token ) {
@@ -716,8 +770,8 @@ function getconfig() {
 
 					// Create event handler for Bridge details
 					$(".bridgedetailslink").on('click', function(e) {
-						console.log("Bridge details", $(this).attr("data-bridgeid"));
-						bridgeDetails( $(this).attr("data-bridgeid") );
+						console.log("Bridge details", $(this).attr("data-intbridgeid"));
+						bridgeDetails( $(this).attr("data-intbridgeid") );
 					});
 
 				//$("#data-list").trigger("create");

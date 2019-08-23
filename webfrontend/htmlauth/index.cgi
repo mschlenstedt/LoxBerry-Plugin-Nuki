@@ -665,21 +665,22 @@ sub checktoken
 			#my $ua = LWP::UserAgent->new(timeout => 10);
 			#my $response = $ua->get("$bridgeurl");
 			
-			my $response = api_call(
+			my $apiresponse = api_call(
 				ip 		=> $cfg->{$bridgeid}->{ip},
 				port	=> $cfg->{$bridgeid}->{port},
 				apiurl	=> '/info',
 				token	=> $cfg->{$bridgeid}->{token}
 			);
 			
-			if ($response->code eq "200") {
+			if ($apiresponse->code eq "200") {
 				$response{auth} = 1;
 				my $info_data;
 				eval {
-					$info_data = decode_json( $response->decoded_content );
+					$info_data = decode_json( $apiresponse->decoded_content );
 					$cfg->{$bridgeid}->{bridgeId} = $info_data->{ids}->{hardwareId} if (defined $info_data->{ids}->{hardwareId});
 					$cfg->{$bridgeid}->{discoveryBridgeId} = $info_data->{ids}->{serverId} if (defined $info_data->{ids}->{serverId});
 					$jsonobj->write;
+					%response = (%response, %$info_data);
 				};
 				if($@) { 
 					LOGERR "checktoken: /info response processing failed: $@";
