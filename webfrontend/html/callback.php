@@ -55,7 +55,7 @@
 
 	$nukidata = json_decode($json);
 	if (!empty($nukidata)) {
-		mqtt_publish( [ $nukidata->nukiId => $json ] );
+		mqtt_publish( [ $nukidata->nukiId => $json, $nukidata->nukiId."/sentBy" => "Callback" ] );
 	}
 	
 
