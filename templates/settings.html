@@ -143,6 +143,7 @@
 			<div style="padding: 20px 20px;">
 				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupbridgeiddetailsheader"></span></h3>
 				<div id="popupbridgeiddetailscontent"></div>
+				<div id="popupbridgeiddetailscallbacks"></div>
 			</div>
 		</div>
 		
@@ -329,6 +330,11 @@ var formbridges = '<TMPL_VAR FORM_BRIDGES>';
 var formdevices = '<TMPL_VAR FORM_DEVICES>';
 var formmqtt = '<TMPL_VAR FORM_MQTT>';
 
+const BRIDGETYPE = JSON.parse('<TMPL_VAR BRIDGETYPE>');
+const DEVICETYPE = JSON.parse('<TMPL_VAR DEVICETYPE>');
+const LOCKSTATE = JSON.parse('<TMPL_VAR LOCKSTATE>');
+const LOCKACTION = JSON.parse('<TMPL_VAR LOCKACTION>');
+
 var storedBridges;
 
 $(function() {
@@ -513,6 +519,11 @@ function bridgeDetails ( intBridgeId ) {
 	detHtmlObj.empty();
 	detHtmlObj.attr("style", "color:blue;").html("<TMPL_VAR COMMON.HINT_PLEASE_WAIT>");
 	
+	detCallbackObj =  $("#popupbridgeiddetailscallbacks");
+	detCallbackObj.empty();
+	
+	// Request for bridge details
+	
 	$.ajax({ 
 		type: 'POST',
 		data: { ajax: 'checktoken', bridgeid: intBridgeId }
@@ -527,38 +538,86 @@ function bridgeDetails ( intBridgeId ) {
 		if ( data.auth ) {
 			currBridgeObj = storedBridges[intBridgeId];
 			detHtmlObj.empty();
-			detHtmlObj.append('<div class="ui-grid-b">');
-			gridObj=$(".ui-grid-b");
+			detHtmlObj.append('<div class="ui-grid-b" id="detailsGrid">');
 			
-			gridObj.append('<div class="ui-block-a">'+'Network address'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+currBridgeObj.ip+':'+currBridgeObj.port+'</div>');
+			gridObj=$("#detailsGrid");
 			
-			gridObj.append('<div class="ui-block-a">'+'bridgeType'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.bridgeType+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'Network address'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+currBridgeObj.ip+':'+currBridgeObj.port+'</div>');
 			
-			gridObj.append('<div class="ui-block-a">'+'currentTime'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.currentTime+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'bridgeType'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+BRIDGETYPE[data.bridgeType]+' ('+data.bridgeType+')</div>');
 			
-			gridObj.append('<div class="ui-block-a">'+'hardwareId'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.ids.hardwareId+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'Internal Plugin ID'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+currBridgeObj.intBridgeId+'</div>');
+
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'hardwareId'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.ids.hardwareId+'</div>');
 			
-			gridObj.append('<div class="ui-block-a">'+'serverId'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.ids.serverId+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'serverId'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.ids.serverId+'</div>');
 			
-			gridObj.append('<div class="ui-block-a">'+'firmwareVersion'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.versions.firmwareVersion+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'firmwareVersion'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.versions.firmwareVersion+'</div>');
 			
-			gridObj.append('<div class="ui-block-a">'+'wifiFirmwareVersion'+'</div>');
-			gridObj.append('<div class="ui-block-b">'+data.versions.wifiFirmwareVersion+'</div>');
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'wifiFirmwareVersion'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.versions.wifiFirmwareVersion+'</div>');
 			
+			if( data.versions.appVersion ) {
+				gridObj.append('<div class="ui-block-a" style="width:30%">'+'appVersion'+'</div>');
+				gridObj.append('<div class="ui-block-b" style="width:60%">'+data.versions.appVersion+'</div>');
+			}
 			
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'uptime (s)'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.uptime+'</div>');
 			
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'currentTime'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.currentTime+'</div>');
+			
+			gridObj.append('<div class="ui-block-a" style="width:30%">'+'serverConnected'+'</div>');
+			gridObj.append('<div class="ui-block-b" style="width:60%">'+data.serverConnected+'</div>');
 			
 		} else {
 			detHtmlObj.empty().attr("style", "color:red;").html("<TMPL_VAR BRIDGES.ERROR_TOKEN_FAILED>");
 			
 		}
+	});
+	
+	// Request for callbacks 
+	$.ajax({ 
+		type: 'POST',
+		data: { ajax: 'ajax_callback_list', bridgeid: intBridgeId }
 	})
+	.fail(function( data ) {
+		detCallbackObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
+		console.log( "ajax_callback_list Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "ajax_callback_list Success", data );
+		detCallbackObj.attr("style", "color:black;")
+		if ( data.callbacks ) {
+			currBridgeObj = storedBridges[intBridgeId];
+			detCallbackObj.empty();
+			detCallbackObj.append('<h3>Registered Callbacks</h3>');
+			detCallbackObj.append('<div class="ui-grid-b" id="callbackGrid">');
+			gridObj=$("#callbackGrid");
+			
+			
+			gridObj.append('<div class="ui-block-a" style="width:8%"><div class="ui-bar ui-bar-a" style="height:20px">'+'ID'+'</div></div>');
+			gridObj.append('<div class="ui-block-b" style="width:92%"><div class="ui-bar ui-bar-a" style="height:20px">'+'URL'+'</div></div>');
+			$.each(data.callbacks, function(){
+				gridObj.append('<div class="ui-block-a" style="width:8%"><div class="ui-bar ui-bar-d" style="min-height:20px">'+this.id+'</div>');
+				gridObj.append('<div class="ui-block-b" style="width:92%"><div class="ui-bar ui-bar-d" style="min-height:20px">'+this.url+'</div>');
+			});
+			
+		} else {
+			detCallbackObj.empty();
+			
+		}
+	});
+	
+	
+	
 
 
 

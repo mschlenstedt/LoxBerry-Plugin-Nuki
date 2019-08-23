@@ -65,6 +65,54 @@ my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
 my $cfgfiledev = $lbpconfigdir . "/bridges.json";
 my $glob_lbuid;
 
+my %bridgeType = ( 
+	1 => "Hardware bridge",
+	2 => "Software bridge",
+);
+my %deviceType = (
+	0 => "Smartlock",
+	2 => "Opener",
+);
+my %lockState = (
+	0 => {	
+		0 => "uncalibrated",
+		1 => "locked",
+		2 => "unlocking",
+		3 => "unlocked",
+		4 => "locking",
+		5 => "unlatched",
+		6 => "unlocked (lock&go)",
+		7 => "unlatching",
+		254 => "motor blocked",
+		255 => "undefined"
+	},
+	2 => {
+		0 => "untrained",
+		1 => "online",
+		3 => "rto active",
+		5 => "open",
+		7 => "opening",
+		253 => "boot run",
+		255 => "undefined"
+	}
+);
+my %lockAction = (
+	0 => {	
+		1 => "unlock",
+		2 => "lock",
+		3 => "unlatch",
+		4 => "lock&go",
+		5 => "lock&go with unlatch"
+	},
+	2 => {
+		1 => "activate rto",
+		2 => "deactivate rto",
+		3 => "electric strike actuation",
+		4 => "activate continuous mode",
+		5 => "deactivate continuous mode"
+	}
+);
+
 ##########################################################################
 # AJAX
 ##########################################################################
@@ -205,6 +253,14 @@ if( $q->{ajax} ) {
 		print JSON::encode_json(\%response);
 	}
 	
+	# Manage callbacks of a SINGLE bridge
+	if( $q->{ajax} eq "ajax_callback_list" ) {
+		LOGINF "ajax_callback_list: ajax_callback_list was called.";
+		($response{error}, $response{message}, $response{callbacks}) = ajax_callback_list($q->{bridgeid});
+		print JSON::encode_json(\%response);
+	}
+	
+	
 	# Get config
 	if( $q->{ajax} eq "getconfig" ) {
 		LOGINF "getconfig: Getconfig was called.";
@@ -284,6 +340,13 @@ if( $q->{ajax} ) {
 	);
 	%L = LoxBerry::System::readlanguage($template, "language.ini");
 	
+	# Send default values to JavaScript
+	
+	$template->param("BRIDGETYPE", LoxBerry::JSON::escape(encode_json(\%bridgeType)));
+	$template->param("DEVICETYPE", LoxBerry::JSON::escape(encode_json(\%deviceType)));
+	$template->param("LOCKSTATE", LoxBerry::JSON::escape(encode_json(\%lockState)));
+	$template->param("LOCKACTION", LoxBerry::JSON::escape(encode_json(\%lockAction)));
+
 	# Default is Bridges form
 	$q->{form} = "bridges" if !$q->{form};
 
@@ -906,6 +969,26 @@ sub callback_list
 	my $callbacks = $jsonobj_callback_list->parse($response->decoded_content);
 	LOGINF "callback_list: Response: ".$response->decoded_content;
 	return $callbacks;
+
+}
+
+sub ajax_callback_list
+{
+	
+	my ($bridgeid) = @_;
+
+	my $cfgfile = $lbpconfigdir . "/bridges.json";
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $cfgfile);
+	
+	return (1, "Bridge not defined") if (!defined $bridgeid or !defined $cfg->{$bridgeid});
+	
+	my $bridgeobj = $cfg->{$bridgeid};
+	
+	my $callbacks = callback_list( $bridgeobj );
+	$callbacks = $callbacks->{callbacks};
+	
+	return(0, "Callbacks received ok", $callbacks);
 
 }
 
