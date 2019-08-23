@@ -483,6 +483,9 @@ sub editbridge
 			$cfg->{$bridgeid}->{port} = $q->{bridgeport};
 			$cfg->{$bridgeid}->{token} = $q->{bridgetoken};
 			$jsonobj->write();
+			if( $cfg->{$bridgeid}->{token} ) {
+				checktoken($bridgeid);
+			}
 			$response{error} = 0;
 			$response{message} = "Bridge saved successfully.";
 			# Check Callbacks
@@ -531,6 +534,9 @@ sub addbridge
 			$cfg->{$q->{bridgeid}}->{port} = $q->{bridgeport};
 			$cfg->{$q->{bridgeid}}->{token} = $q->{bridgetoken};
 			$jsonobj->write();
+			if( $cfg->{$q->{bridgeid}}->{token} ) {
+				checktoken($q->{bridgeid});
+			}
 			$response{error} = 0;
 			$response{message} = "New Bridge saved successfully.";
 			# Check Callbacks
