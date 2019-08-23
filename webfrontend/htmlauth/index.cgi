@@ -989,7 +989,7 @@ sub callback_remove
 		return undef;
 	}
 	
-	LOGINF "callback_remove: Called for ".$bridgeobj->{bridgeId}." and callback id $delid";
+	LOGINF "callback_remove: Called for ".$bridgeobj->{intBridgeId}." and callback id $delid";
 	
 	# my $bridgeid = $bridgeobj->{bridgeId};
 	# my $bridgeurl = "http://" . $bridgeobj->{ip} . ":" . $bridgeobj->{port} . "/callback/remove?id=" . $delid . "&token=" . $bridgeobj->{token};
@@ -1062,7 +1062,7 @@ sub callback_add
 {
 	my ($bridgeobj, $callbackurl) = @_;
 	
-	LOGINF "callback_add: Adding callback for " . $bridgeobj->{bridgeId} . "";
+	LOGINF "callback_add: Adding callback for " . $bridgeobj->{intBridgeId} . "";
 	
 	if(!$bridgeobj or !$callbackurl) {
 		LOGINF "callback_add: Missing parameters";

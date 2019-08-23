@@ -655,7 +655,7 @@ function getconfig() {
 					//$('<td class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</td>').appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
-					$('<td />', { html: '<span id="token' + intBridgeId + '">' + item.token + '</span>' }).appendTo(row);
+					$('<td />', { html: '<span id="token' + intBridgeId + '">' + item.token ? item.token : "" + '</span>' }).appendTo(row);
 					$('<td />', { html: '<span id="status' + intBridgeId + '"></span>' }).appendTo(row);
 					
 					if ( item.token ) {
