@@ -667,6 +667,17 @@ sub checktoken
 			
 			if ($response->code eq "200") {
 				$response{auth} = 1;
+				my $info_data;
+				eval {
+					$info_data = json_decode( $response->decoded_content );
+					$cfg->{$bridgeid}->{bridgeId} = $info_data->{ids}->{hardwareId} if (defined $info_data->{ids}->{hardwareId});
+					$cfg->{$bridgeid}->{discoveryBridgeId} = $info_data->{ids}->{serverId} if (defined $info_data->{ids}->{serverId});
+					$jsonobj->write;
+				};
+				if($@) { 
+					LOGERR "checktoken: /info response processing failed: $@";
+				}
+				
 			} else {
 				$response{auth} = 0;
 			}
