@@ -754,13 +754,9 @@ function getconfig() {
 			if ( formmqtt ) {
 				console.log( "Parse Item for MQTT form" );
 				// Fill the form with json data retrieved from the ajax getconfig call
-				
-				responseerror = false;
 				if ( data.error || jQuery.isEmptyObject(data)) {
 					console.log("mqtt.json is empty, does not exist or is invalid.");
-					responseerror = true;
 				}
-				
 				if(data.topic) {
 					$("#MQTTTopic").val(data.topic);
 				} else {

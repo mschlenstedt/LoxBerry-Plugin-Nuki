@@ -454,6 +454,7 @@ sub deletebridge
 	if (!$bridgeid) {
 		$errors++;
 	} else {
+		my ($error, $message) = callback_uninstall($bridgeid);
 		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $cfgfile);
@@ -669,7 +670,7 @@ sub checktoken
 				$response{auth} = 1;
 				my $info_data;
 				eval {
-					$info_data = json_decode( $response->decoded_content );
+					$info_data = decode_json( $response->decoded_content );
 					$cfg->{$bridgeid}->{bridgeId} = $info_data->{ids}->{hardwareId} if (defined $info_data->{ids}->{hardwareId});
 					$cfg->{$bridgeid}->{discoveryBridgeId} = $info_data->{ids}->{serverId} if (defined $info_data->{ids}->{serverId});
 					$jsonobj->write;
@@ -896,7 +897,7 @@ sub callback_list
 	# Parse response
 	my $jsonobj_callback_list = LoxBerry::JSON->new();
 	my $callbacks = $jsonobj_callback_list->parse($response->decoded_content);
-	LOGINF "callback_list: Response: ".$response->decoded_content."\n";
+	LOGINF "callback_list: Response: ".$response->decoded_content;
 	return $callbacks;
 
 }
@@ -987,6 +988,119 @@ sub callback_fuzzycheck
 	return 0;
 
 }
+
+# Removes own callbacks
+sub callback_uninstall
+{
+	my ($bridgeid) = @_;
+	
+	LOGINF "callback_uninstall: Uninstall callbacks for $bridgeid";
+	
+	my $cfgfile = $lbpconfigdir . "/bridges.json";
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $cfgfile);
+	
+	return (1, "Bridge not defined") if (!defined $bridgeid or !defined $cfg->{$bridgeid});
+	
+	my $bridgeobj = $cfg->{$bridgeid};
+	
+	my $looprun = 0;
+	{
+		
+		$looprun++;	
+		LOGDEB "callback_uninstall: Loop run $looprun";
+		
+		# Query callbacks
+		LOGDEB "Querying callbacks";
+		my $callbacks = callback_list($bridgeobj);
+		if (!$callbacks) {
+			LOGOK "callback_uninstall: No callbacks found for $bridgeid. Finished.";
+			return;
+		}
+		
+		LOGDEB "Checking for duplicates";
+		my %checkduplicates;
+		my $itemsremoved = 0;
+		my $lbuid = callback_lbuid_get_from_file();
+		
+		# Check for and remove duplicates
+		foreach my $callback ( @{$callbacks->{callbacks}} ) {
+			LOGINF "callback_uninstall: Checking for duplicates $callback->{url}";
+			next unless $checkduplicates{$callback->{url}}++;
+			LOGINF "callback_uninstall: URL $callback->{url} is a duplicate\n";
+			callback_remove($bridgeobj, $callback->{id});
+			$itemsremoved++;
+			last;
+		}
+		# If duplicate callbacks were removed, we need to re-run the query for callbacks
+		if($itemsremoved) {
+			LOGINF "callback_uninstall: Duplicates were removed - re-run check";
+			redo;
+		}
+		
+		my $callbackok = 0;
+		
+		$itemsremoved = 0;
+		
+		LOGDEB "Searching own callbacks";
+		
+		foreach my $callback ( @{$callbacks->{callbacks}} ) {
+					
+			## Detection for changed ip/hostname/port
+			# Split url (https://stackoverflow.com/a/26766402/3466839)
+			$callback->{url} =~ /^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
+			my $hostpart = $4 ? $4 : ""; 		# loxberry-dev.brunnenweg.lan:80 
+			my $pathpart = $5 ? $5 : "";		# /plugins/nukismartlock/callback.php
+			my $parampart = $7 ? $7 : "";		# lbuid=1234
+			
+			if( $hostpart eq $lbaddress.":".lbwebserverport() and $pathpart eq $localcallbackurl and $parampart eq "lbuid=".$lbuid ) {
+				LOGINF "callback_uninstall: Callback exists - removing...";
+				callback_remove($bridgeobj, $callback->{id});
+				$itemsremoved++;
+				last;
+			}
+
+			# Remove plugin callbacks without lbuid
+			if($pathpart eq "/plugins/$lbpplugindir/callback.php" and !$parampart) {
+				LOGINF "callback_uninstall: Callback without lbuid will be removed...";
+				callback_remove($bridgeobj, $callback->{id});
+				$itemsremoved++;
+				last;
+			}
+			
+			# Skip callbacks from other LoxBerry's
+			if($pathpart eq "/plugins/$lbpplugindir/callback.php" and $parampart ne "lbuid=".$lbuid) {
+				LOGINF "callback_uninstall: Callback from other LoxBerry skipped";
+				next;
+			}
+
+			# Skip third-party callbacks
+			if($pathpart ne "/plugins/$lbpplugindir/callback.php") {
+				LOGDEB "callback_uninstall: Callback $callback->{url} skipped - not from this plugin";
+				next;
+			}
+			
+			# Now we have found a callback from the plugin, but with different hostname/ip
+			LOGINF "callback_uninstall: Callback with different hostname/ip will be removed...";
+			callback_remove($bridgeobj, $callback->{id});
+			$itemsremoved++;
+			last;
+			
+		}
+		
+		if($itemsremoved) {
+			LOGINF "callback_uninstall: Items were removed - re-run check";
+			redo;
+		}
+		
+	}
+	
+	LOGOK "Callbacks of Nuki plugin removed for Bridge $bridgeid";
+	return (0, "Plugin callbacks from Bridge removed.")
+
+}
+
+
 
 # Removes a callback by it's id
 # IMPORTANT: id of all callbacks may change on remove of an id. It is necessary to re-read the callback list after removal
