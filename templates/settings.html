@@ -630,9 +630,15 @@ function getconfig() {
 		})
 		.done(function( data ) {
 			console.log( "getconfig Success", data );
+			
 			if ( formbridges ) {
 				console.log( "Parse Items for Bridges form" );
 				$('#data-list').empty();
+				// Check for errors or empty object
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					$('#data-list').html("<TMPL_VAR BRIDGES.ERROR_NO_BRIDGES_DEFINED>");
+					return;
+				}
 				// Create table
 				var table = $('<table width="100%" data-role="table" id="bridgestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
 				// Add the header row
@@ -719,6 +725,10 @@ function getconfig() {
 			if ( formdevices ) {
 				console.log( "Parse Item for Devices form" );
 				$('#data-list').empty();
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					$('#data-list').html("<TMPL_VAR DEVICES.ERROR_NO_DEVICES_DEFINED>");
+					return;
+				}
 				// Create table
 				var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
 				// Add the header row
@@ -743,8 +753,14 @@ function getconfig() {
 			};
 			if ( formmqtt ) {
 				console.log( "Parse Item for MQTT form" );
-				// Fill the form with json data retrieved from the ajax getmailcfg call
-				// As this are little fields, we do it "by hand" (see MQTT plugin for an automated form filling)
+				// Fill the form with json data retrieved from the ajax getconfig call
+				
+				responseerror = false;
+				if ( data.error || jQuery.isEmptyObject(data)) {
+					console.log("mqtt.json is empty, does not exist or is invalid.");
+					responseerror = true;
+				}
+				
 				if(data.topic) {
 					$("#MQTTTopic").val(data.topic);
 				} else {
@@ -758,22 +774,22 @@ function getconfig() {
 				if(data.server) {
 					$("#BrokerServer").val(data.server);
 				} else {
-					$("#BrokerServer").val('localhost');
+					$("#BrokerServer").val('');
 				}
 				if(data.port) {
 					$("#BrokerPort").val(data.port);
 				} else {
-					$("#BrokerPort").val('1883');
+					$("#BrokerPort").val('');
 				}
 				if(data.username) {
 					$("#BrokerUsername").val(data.username);
 				} else {
-					$("#BrokerUsername").val('loxberry');
+					$("#BrokerUsername").val('');
 				}
 				if(data.password) {
 					$("#BrokerPassword").val(data.password);
 				} else {
-					$("#BrokerPassword").val('loxberry');
+					$("#BrokerPassword").val('');
 				}
 				
 				refreshMQTTForm();
