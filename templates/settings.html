@@ -147,8 +147,6 @@
 			</div>
 		</div>
 		
-		
-		
 	</div> <!-- main -->
 
 </TMPL_IF>
@@ -511,6 +509,7 @@ function addBridge( data ) {
 		$("#addbridgetoken").val("");
 	});
 }
+
 // Show details of bridge
 function bridgeDetails ( intBridgeId ) {
 	$("#popupbridgeiddetailsheader").text( intBridgeId );
@@ -523,7 +522,6 @@ function bridgeDetails ( intBridgeId ) {
 	detCallbackObj.empty();
 	
 	// Request for bridge details
-	
 	$.ajax({ 
 		type: 'POST',
 		data: { ajax: 'checktoken', bridgeid: intBridgeId }
@@ -615,14 +613,7 @@ function bridgeDetails ( intBridgeId ) {
 			
 		}
 	});
-	
-	
-	
-
-
-
 }
-
 
 // Search for Devices
 $('#btnsearchdevices').click( function(e) {
@@ -819,10 +810,13 @@ function getconfig() {
 					<img src="./images/link_32.png" height="32"></img></a> \
 					<a href="javascript:askEditBridge(' + intBridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
 					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + intBridgeId + '"> \
-					<img src="./images/gear_32.png" height="32"></img></a></a> \
+					<img src="./images/gear_32.png" height="32"></img></a> \
+					<span class="bridgedetailslink" data-intbridgeid="'+intBridgeId+'"><a href="#" id="btnbridgeinfo" name="btnbridgeinfo" \
+					title="<TMPL_VAR BRIDGES.BUTTON_INFO> ' + intBridgeId + '"> \
+					<img src="./images/info2_32.png" height="32"></img></a></span> \
 					<a href="javascript:askDeleteBridge(' + intBridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
 					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + intBridgeId + '"> \
-					<img src="./images/cancel_32.png" height="32"></img></a></a> \
+					<img src="./images/cancel_32.png" height="32"></img></a> \
 					' }).appendTo(row);
 					$(row).trigger("create");
 				});
