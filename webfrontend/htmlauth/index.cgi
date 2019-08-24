@@ -50,15 +50,7 @@ my $template;
 my %L;
 
 # Globals 
-my $lbhostname = lbhostname();
-my $lbip = LoxBerry::System::get_localip();
-my $lbaddress;
-system ("host $lbhostname > /dev/null 2>&1");
-if ($?) {
-	$lbaddress = $lbip;
-} else {
-	$lbaddress = $lbhostname;
-}
+my $lbaddress = LoxBerry::System::get_localip();
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
 my $fullcallbackurl = "http://".$lbaddress.":".lbwebserverport().$localcallbackurl;
 my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
@@ -466,7 +458,7 @@ sub searchbridges
 	require LWP::UserAgent;
 
 	my $ua = LWP::UserAgent->new(timeout => 10);
-	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges\n";
+	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges";
 	my $response = $ua->get('https://api.nuki.io/discover/bridges');
 	my $errors;
 
