@@ -50,15 +50,7 @@ my $template;
 my %L;
 
 # Globals 
-my $lbhostname = lbhostname();
-my $lbip = LoxBerry::System::get_localip();
-my $lbaddress;
-system ("host $lbhostname > /dev/null 2>&1");
-if ($?) {
-	$lbaddress = $lbip;
-} else {
-	$lbaddress = $lbhostname;
-}
+my $lbaddress = LoxBerry::System::get_localip();
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
 my $fullcallbackurl = "http://".$lbaddress.":".lbwebserverport().$localcallbackurl;
 my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
@@ -426,7 +418,7 @@ sub form_print
 	$navbar{5}{target} = '_blank';
 	
 	# Template
-	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/display/LOXBERRY/MiRobot2Lox-NG", "");
+	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/x/t4RdAw", "");
 	print $template->output();
 	LoxBerry::Web::lbfooter();
 	
@@ -466,34 +458,45 @@ sub searchbridges
 	require LWP::UserAgent;
 
 	my $ua = LWP::UserAgent->new(timeout => 10);
-	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges\n";
+	LOGINF "searchbridges: Call https://api.nuki.io/discover/bridges";
 	my $response = $ua->get('https://api.nuki.io/discover/bridges');
 	my $errors;
 
 	if ($response->is_success) {
-		LOGINF "searchbridges: Success: " . $response->status_line . "\n";
-		LOGINF "searchbridges: Response: " . $response->decoded_content . "";
+		LOGINF "searchbridges: Success: " . $response->status_line;
+		LOGINF "searchbridges: Response: " . $response->decoded_content;
 		my $jsonobjbr = LoxBerry::JSON->new();
 		my $bridges = $jsonobjbr->parse($response->decoded_content);
-		if ( !$bridges->{errorCode} && $bridges->{errorCode} ne "0" ) {$bridges->{errorCode} = "Undef"};
+		if ( !$bridges->{errorCode} && $bridges->{errorCode} ne "0" ) {
+			$bridges->{errorCode} = "Undef"
+		};
 		LOGINF "searchbridges: ErrorCode: $bridges->{errorCode}";
 		if ($bridges->{errorCode} eq "0") {
 			# Config
 			my $cfgfile = $lbpconfigdir . "/bridges.json";
 			my $jsonobj = LoxBerry::JSON->new();
 			my $cfg = $jsonobj->open(filename => $cfgfile);
-			for my $results( @{$bridges->{bridges}} ){
-				LOGINF "searchbridges: Found BridgeID: " . $results->{bridgeId} . "";
-				if ( $cfg->{$results->{discoveryBridgeId}} ) {
-					LOGINF "searchbridges: Bridge already exists in Config -> Skipping";
-					next;
-				} else {
+			for my $serverBridge ( @{$bridges->{bridges}} ){
+				LOGINF "searchbridges: Found Bridge serverId: " . $serverBridge->{bridgeId};
+				
+				# Loop through known bridges if we already know this discoveryBridgeId
+				my $bridgeknown = 0;
+				foreach my $intBridgeKey ( %$cfg ) {
+					my $intBridge = $cfg->{$intBridgeKey};
+					next if ( $serverBridge->{bridgeId} ne $intBridge->{discoveryBridgeId} );
+					LOGINF "searchbridges: Bridge serverId $serverBridge->{bridgeId} matches known Bridge $intBridge->{intBridgeId} -> Updating ip/port";
+					$intBridge->{ip} = $serverBridge->{ip};
+					$intBridge->{port} = $serverBridge->{port};
+					$bridgeknown = 1;
+					last;
+				}
+				if ($bridgeknown == 0)  {
 					LOGINF "searchbridges: Bridge does not exist in Config -> Saving";
-					$cfg->{$results->{bridgeId}}->{discoveryBridgeId} = $results->{bridgeId};
-					$cfg->{$results->{bridgeId}}->{intBridgeId} = $results->{bridgeId};
-					$cfg->{$results->{bridgeId}}->{bridgeId} = "";
-					$cfg->{$results->{bridgeId}}->{ip} = $results->{ip};
-					$cfg->{$results->{bridgeId}}->{port} = $results->{port};
+					$cfg->{$serverBridge->{bridgeId}}->{discoveryBridgeId} = $serverBridge->{bridgeId};
+					$cfg->{$serverBridge->{bridgeId}}->{intBridgeId} = $serverBridge->{bridgeId};
+					$cfg->{$serverBridge->{bridgeId}}->{bridgeId} = "";
+					$cfg->{$serverBridge->{bridgeId}}->{ip} = $serverBridge->{ip};
+					$cfg->{$serverBridge->{bridgeId}}->{port} = $serverBridge->{port};
 					
 				}
 			}
