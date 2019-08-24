@@ -418,7 +418,7 @@ sub form_print
 	$navbar{5}{target} = '_blank';
 	
 	# Template
-	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/display/LOXBERRY/MiRobot2Lox-NG", "");
+	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/x/t4RdAw", "");
 	print $template->output();
 	LoxBerry::Web::lbfooter();
 	
