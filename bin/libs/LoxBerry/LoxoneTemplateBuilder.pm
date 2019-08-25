@@ -7,7 +7,7 @@ use HTML::Entities;
 
 package LoxBerry::LoxoneTemplateBuilder;
 
-our $VERSION = "2.0.0.2";
+our $VERSION = "2.0.0.3";
 our $DEBUG = 0;
 
 if ($DEBUG) {
@@ -209,7 +209,6 @@ sub VirtualOutCmd
 
 }
 
-
 sub output
 {
 	my $self = shift;
@@ -372,6 +371,7 @@ sub delete
 sub is_enabled
 { 
 	my ($text) = @_;
+	return undef if (!$text);
 	$text =~ s/^\s+|\s+$//g;
 	$text = lc $text;
 	if ($text eq "true") { return 1;}

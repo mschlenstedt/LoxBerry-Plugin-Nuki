@@ -54,7 +54,10 @@ my $lbaddress = LoxBerry::System::get_localip();
 my $localcallbackurl = "/plugins/".$lbpplugindir."/callback.php";
 my $fullcallbackurl = "http://".$lbaddress.":".lbwebserverport().$localcallbackurl;
 my $nuki_locking_file = "/run/shm/{$lbpplugindir}_api_lock.lck";
-my $cfgfiledev = $lbpconfigdir . "/bridges.json";
+my $CFGFILEBRIDGES = $lbpconfigdir . "/bridges.json";
+my $CFGFILEDEVICES = $lbpconfigdir . "/devices.json";
+my $CFGFILEMQTT = $lbpconfigdir . "/mqtt.json";
+
 my $glob_lbuid;
 
 my %bridgeType = ( 
@@ -93,8 +96,8 @@ my %lockAction = (
 		1 => "unlock",
 		2 => "lock",
 		3 => "unlatch",
-		4 => "lock&go",
-		5 => "lock&go with unlatch"
+		4 => "lock 'n' go",
+		5 => "lock 'n' go with unlatch"
 	},
 	2 => {
 		1 => "activate rto",
@@ -138,63 +141,63 @@ if( $q->{ajax} ) {
 	if( $q->{ajax} eq "checksecpin" ) {
 		LOGINF "checksecpin: CheckSecurePIN was called.";
 		$response{error} = &checksecpin();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 
 	# Save MQTT Settings
 	if( $q->{ajax} eq "savemqtt" ) {
 		LOGINF "savemqtt: savemqtt was called.";
 		$response{error} = &savemqtt();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Search bridges
 	if( $q->{ajax} eq "searchbridges" ) {
 		LOGINF "searchbridges: Search for Bridges was called.";
 		$response{error} = &searchbridges();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Delete bridges
 	if( $q->{ajax} eq "deletebridge" ) {
 		LOGINF "deletebridge: Delete Bridge was called.";
 		$response{error} = &deletebridge($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Add bridges
 	if( $q->{ajax} eq "addbridge" ) {
 		LOGINF "addbridge: Add Bridge was called.";
 		%response = &addbridge();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Activate bridges
 	if( $q->{ajax} eq "activatebridge" ) {
 		LOGINF "activatebridge: activatebridge was called.";
 		%response = &activatebridge($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Edit bridges
 	if( $q->{ajax} eq "editbridge" ) {
 		LOGINF "editbridge: Edit Bridge was called.";
 		%response = &editbridge($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Checkonline Bridges
 	if( $q->{ajax} eq "checkonline" ) {
 		LOGINF "checkonline: Checkonline was called.";
 		$response{online} = &checkonline($q->{url});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 
 	# Checktoken Bridges
 	if( $q->{ajax} eq "checktoken" ) {
 		LOGINF "checktoken: Checktoken was called with Bridge ID " . $q->{bridgeid} . "";
 		%response = &checktoken($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Get single bridge config
@@ -214,42 +217,49 @@ if( $q->{ajax} ) {
 			# Get config
 			%response = &getbridgeconfig ( $q->{bridgeid} );
 		}
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Search Devices
 	if( $q->{ajax} eq "searchdevices" ) {
 		LOGINF "searchdevices: Search for Devices was called.";
 		$response{error} = &searchdevices();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+	
+	# Get Downloads for deviceId
+	if( $q->{ajax} eq "getdevicedownloads" ) {
+		LOGINF "getdevicedownloads: Get downloads for nukiId was called.";
+		($response{error}, $response{message}, $response{payload}) = &getdevicedownloads($q->{bridgeId}, $q->{nukiId});
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Manage callbacks of ALL bridges
 	if( $q->{ajax} eq "callbacks" ) {
 		LOGINF "callbacks: Callbacks was called.";
 		$response{error} = callbacks();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Manage callbacks of a SINGLE bridge
 	if( $q->{ajax} eq "callback" ) {
 		LOGINF "callback: Callback was called.";
 		($response{error}, $response{message}) = callback($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Manage callbacks of a SINGLE bridge
 	if( $q->{ajax} eq "callback_remove_all_from_all" ) {
 		LOGINF "callback_remove_all_from_all: Remove all Callbacks from all bridges was called.";
 		callback_remove_all_from_all();
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	# Manage callbacks of a SINGLE bridge
 	if( $q->{ajax} eq "ajax_callback_list" ) {
 		LOGINF "ajax_callback_list: ajax_callback_list was called.";
 		($response{error}, $response{message}, $response{callbacks}) = ajax_callback_list($q->{bridgeid});
-		print JSON::encode_json(\%response);
+		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
 	
@@ -279,7 +289,7 @@ if( $q->{ajax} ) {
 			$content = LoxBerry::System::read_file("$cfgfile");
 			print $content;
 		}
-		print JSON::encode_json(\%response) if !$content;
+		print JSON->new->canonical(1)->encode(\%response) if !$content;
 	}
 	
 	exit;
@@ -794,10 +804,9 @@ sub searchdevices
 {
 	my $errors;
 	# Devices config
-	my $cfgfiledev = $lbpconfigdir . "/devices.json";
-	unlink ( $cfgfiledev );
+	unlink ( $CFGFILEDEVICES );
 	my $jsonobjdev = LoxBerry::JSON->new();
-	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev);
+	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEDEVICES);
 	# Bridges config
 	my $cfgfile = $lbpconfigdir . "/bridges.json";
 	my $jsonobj = LoxBerry::JSON->new();
@@ -854,9 +863,9 @@ sub callbacks
 	
 	
 	my $jsonobjdev = LoxBerry::JSON->new();
-	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEBRIDGES, readonly => 1);
 	if(!$cfgdev) {
-		LOGINF "callbacks: Could not open $cfgfiledev - not configured yet?";
+		LOGINF "callbacks: Could not open $CFGFILEBRIDGES - not configured yet?";
 		return;
 	}
 	
@@ -892,7 +901,7 @@ sub callback
 	my $lbuid = callback_lbuid_get_from_file();
 
 	my $jsonobjdev = LoxBerry::JSON->new();
-	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEBRIDGES, readonly => 1);
 
 
 
@@ -1249,7 +1258,7 @@ sub callback_remove_all_from_bridge
 	my ($bridgeid) = @_;
 
 	my $jsonobjdev = LoxBerry::JSON->new();
-	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEBRIDGES, readonly => 1);
 	
 	if( defined $cfgdev->{$bridgeid} and $cfgdev->{$bridgeid}->{token} ) {
 		callback_remove( $cfgdev->{$bridgeid}, "2" );
@@ -1266,7 +1275,7 @@ sub callback_remove_all_from_bridge
 sub callback_remove_all_from_all {
 
 	my $jsonobjdev = LoxBerry::JSON->new();
-	my $cfgdev = $jsonobjdev->open(filename => $cfgfiledev, readonly => 1);
+	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEBRIDGES, readonly => 1);
 	
 	foreach my $bridgeid (keys %$cfgdev) {
 		callback_remove_all_from_bridge($bridgeid);
@@ -1474,9 +1483,8 @@ sub api_call_unlock
 sub savemqtt
 {
 	my $errors;
-	my $cfgfile = $lbpconfigdir . "/mqtt.json";
 	my $jsonobj = LoxBerry::JSON->new();
-	my $cfg = $jsonobj->open(filename => $cfgfile);
+	my $cfg = $jsonobj->open(filename => $CFGFILEMQTT);
 	$cfg->{topic} = $q->{topic};
 	$cfg->{usemqttgateway} = $q->{usemqttgateway};
 	$cfg->{server} = $q->{server};
@@ -1486,6 +1494,86 @@ sub savemqtt
 	$jsonobj->write();
 	return ($errors);
 }
+
+# Get VIs/VOs and data for nukiId
+sub getdevicedownloads
+{
+	my ($intBridgeId, $nukiId) = @_;
+	
+	my $jsonobjbridges = LoxBerry::JSON->new();
+	my $bridges = $jsonobjbridges->open(filename => $CFGFILEBRIDGES, readonly => 1);
+	my $jsonobjdevices = LoxBerry::JSON->new();
+	my $devices = $jsonobjdevices->open(filename => $CFGFILEDEVICES, readonly => 1);
+	my $jsonobjmqtt = LoxBerry::JSON->new();
+	my $mqttconfig = $jsonobjmqtt->open(filename => $CFGFILEMQTT, readonly => 1);
+	
+	my %payload;
+	my $error = 0;
+	my $message = "";
+	
+	if(! defined $bridges->{$intBridgeId} ) {
+		return (1, "BridgeId does not exist", undef);
+	} elsif (! defined $devices->{$nukiId} ) {
+		return (1, "NukiId does not exist", undef);
+	}
+	
+	require "$lbpbindir/libs/LoxBerry/LoxoneTemplateBuilder.pm";
+	require HTML::Entities;
+
+ 
+	# Get current date
+	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();
+	$year+=1900;
+	
+	my $currdev = $devices->{$nukiId};
+	my $devtype = $currdev->{deviceType};
+	
+	LOGDEB "Device type is $devtype ($deviceType{$devtype})";
+	
+	## Create VO's
+
+	my $VO = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
+		Title => "NUKI " . $currdev->{name},
+		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
+		Address => "http://".$bridges->{$intBridgeId}->{ip}.":".$bridges->{$intBridgeId}->{port},
+ 	);
+	
+	# Lock Actions
+	my $devlockActions = $lockAction{$devtype};
+	foreach my $actionkey ( sort keys %$devlockActions ) {
+		my $actionname = $devlockActions->{$actionkey};
+		$actionname  =~ s/\b(\w)(\w*)/\U$1\L$2/g;
+		LOGDEB "actionkey $actionkey actionname $actionname";
+		$VO->VirtualOutCmd(
+			Title => $actionname,
+			CmdOnHTTP => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
+		);
+	}
+	my $xml = $VO->output;
+	$payload{vo} = $xml;
+	$payload{voFilename} = "VO_NUKI_$currdev->{name}.xml";
+	
+	## Get MQTT 
+	my $topic = $mqttconfig->{topic};
+	
+	# ... add calculation of callback VIs
+	
+	
+	
+	
+	
+	
+	
+	
+	$error = 0;
+	$message = "Generated successfully";
+	return ($error, $message, \%payload);
+
+
+
+}
+
+
 
 
 END {

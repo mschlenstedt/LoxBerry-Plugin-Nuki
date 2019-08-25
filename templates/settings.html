@@ -147,8 +147,6 @@
 			</div>
 		</div>
 		
-		
-		
 	</div> <!-- main -->
 
 </TMPL_IF>
@@ -176,7 +174,14 @@
 		<!-- Table -->
 		<div id="data-list"></div>
 		
-
+		<!-- Popup: Device Downloads -->
+		<div data-role="popup" id="popupDownloads" data-dismissible="true" style="min-width:600px;max-width:800px;min-height:600px;" data-theme="a" class="ui-corner-all">
+			<div style="padding: 20px 20px;">
+				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupdevicesdownloadsheader"></span></h3>
+				<div id="popupdevicesdownloadscontent"></div>
+				
+			</div>
+		</div>
 		
 	</div> <!-- main -->
 
@@ -336,6 +341,7 @@ const LOCKSTATE = JSON.parse('<TMPL_VAR LOCKSTATE>');
 const LOCKACTION = JSON.parse('<TMPL_VAR LOCKACTION>');
 
 var storedBridges;
+var storedDevices;
 
 $(function() {
 	// Check SecurePIN by ajax and load form data
@@ -511,6 +517,7 @@ function addBridge( data ) {
 		$("#addbridgetoken").val("");
 	});
 }
+
 // Show details of bridge
 function bridgeDetails ( intBridgeId ) {
 	$("#popupbridgeiddetailsheader").text( intBridgeId );
@@ -523,7 +530,6 @@ function bridgeDetails ( intBridgeId ) {
 	detCallbackObj.empty();
 	
 	// Request for bridge details
-	
 	$.ajax({ 
 		type: 'POST',
 		data: { ajax: 'checktoken', bridgeid: intBridgeId }
@@ -615,13 +621,44 @@ function bridgeDetails ( intBridgeId ) {
 			
 		}
 	});
-	
-	
-	
-
-
-
 }
+
+
+// Show device downloads
+function deviceDownloads ( intBridgeId, nukiId ) {
+	$("#popupdevicesdownloadsheader").text( storedDevices[nukiId].name );
+	$("#popupDownloads").popup("open");
+	detHtmlObj = $("#popupdevicesdownloadscontent");
+	detHtmlObj.empty();
+	detHtmlObj.attr("style", "color:blue;").html("<TMPL_VAR COMMON.HINT_PLEASE_WAIT>");
+	
+	$.ajax({ 
+		type: 'POST',
+		data: { 
+			ajax: 'getdevicedownloads', 
+			secpin: $('#securepin').val(), 
+			bridgeId: intBridgeId,
+			nukiId: nukiId  }
+	})
+	.fail(function( data ) {
+		detHtmlObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
+		console.log( "checktoken Fail", data );
+	})
+	.done(function( data ) {
+		console.log( "deviceDownloads Success: ", data );
+		detHtmlObj.empty();
+		detHtmlObj.attr("style", "color:black;");
+		
+		detHtmlObj.append($('<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vo)+'">Download Output Template</a>'));
+	
+	
+	
+	})
+	
+	
+}
+
+
 
 
 // Search for Devices
@@ -751,6 +788,7 @@ function getconfig() {
 					storedBridges = undefined;
 					return;
 				}
+				storedBridges = data;
 				// Create table
 				var table = $('<table width="100%" data-role="table" id="bridgestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
 				// Add the header row
@@ -765,7 +803,7 @@ function getconfig() {
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
 				// Add the data rows to the table body.
-				storedBridges = data;
+				
 				$.each( data, function( intBridgeId, item){
 					console.log("getconfig loop", intBridgeId, item);
 					var row = $('<tr />').appendTo(tbody);
@@ -819,10 +857,13 @@ function getconfig() {
 					<img src="./images/link_32.png" height="32"></img></a> \
 					<a href="javascript:askEditBridge(' + intBridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
 					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + intBridgeId + '"> \
-					<img src="./images/gear_32.png" height="32"></img></a></a> \
+					<img src="./images/gear_32.png" height="32"></img></a> \
+					<span class="bridgedetailslink" data-intbridgeid="'+intBridgeId+'"><a href="#" id="btnbridgeinfo" name="btnbridgeinfo" \
+					title="<TMPL_VAR BRIDGES.BUTTON_INFO> ' + intBridgeId + '"> \
+					<img src="./images/info2_32.png" height="32"></img></a></span> \
 					<a href="javascript:askDeleteBridge(' + intBridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
 					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + intBridgeId + '"> \
-					<img src="./images/cancel_32.png" height="32"></img></a></a> \
+					<img src="./images/cancel_32.png" height="32"></img></a> \
 					' }).appendTo(row);
 					$(row).trigger("create");
 				});
@@ -840,8 +881,10 @@ function getconfig() {
 				$('#data-list').empty();
 				if ( data.error || jQuery.isEmptyObject(data)) {
 					$('#data-list').html("<TMPL_VAR DEVICES.ERROR_NO_DEVICES_DEFINED>");
+					storedDevices = undefined;
 					return;
 				}
+				storedDevices = data;
 				// Create table
 				var table = $('<table width="100%" data-role="table" id="devicestable" data-mode="reflow" class="ui-responsive table-stroke listtable">').appendTo('#data-list');
 				// Add the header row
@@ -850,18 +893,36 @@ function getconfig() {
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NUKIID>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NAME>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_BRIDGEID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ACTIONS>' }).appendTo(theader);
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
 				// Add the data rows to the table body.
 				$.each( data, function( intBridgeId, item){
 					var row = $('<tr />').appendTo(tbody);
-					if ( item.deviceType == '0' ) {
-						$('<td />', { html: '<img src="./images/nuki-smart-lock.svg" height="32"></img>' }).appendTo(row);
+					switch(item.deviceType) {
+						case 0: $('<td />', { html: '<img src="./images/nuki-smart-lock.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						case 2: $('<td />', { html: '<img src="./images/nuki-opener.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						default:  $('<td />', { html: '<img src="./images/nuki-unknown.svg" alt="unknown" height="32"></img>' }).appendTo(row);
 					}
 					$('<td />', { text: item.nukiId }).appendTo(row);
 					$('<td />', { text: item.name }).appendTo(row);
 					$('<td />', { text: item.bridgeId }).appendTo(row);
+					
+					$('<td />', { html: '\
+					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
+					title="<TMPL_VAR DEVICES.BUTTON_VO_DOWNLOAD>"> \
+					<img src="./images/devices_vo_download_32.png" height="32"></img></a></span> \
+					' }).appendTo(row);
+					
 				});
+				
+				// Create event handler for Download details
+					$(".deviceVOdownload").on('click', function(e) {
+						console.log("Device VO download", $(this).attr("data-nukiid"), $(this).attr("data-intbridgeId"));
+						// deviceVOdownload( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
+						deviceDownloads ( $(this).attr("data-intbridgeid"), $(this).attr("data-nukiid") );
+					});
+					
 				//$("#data-list").trigger("create");
 			};
 			if ( formmqtt ) {
