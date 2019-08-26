@@ -70,6 +70,7 @@ my %deviceType = (
 );
 my %lockState = (
 	0 => {	
+		-1 => "plugin connection error",
 		0 => "uncalibrated",
 		1 => "locked",
 		2 => "unlocking",
@@ -82,6 +83,7 @@ my %lockState = (
 		255 => "undefined"
 	},
 	2 => {
+		-1 => "plugin connection error",
 		0 => "untrained",
 		1 => "online",
 		3 => "rto active",
