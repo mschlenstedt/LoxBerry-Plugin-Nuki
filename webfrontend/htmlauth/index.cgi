@@ -354,7 +354,8 @@ if( $q->{ajax} ) {
 
 	if ($q->{form} eq "bridges") { &form_bridges() }
 	elsif ($q->{form} eq "devices") { &form_devices() }
-	elsif ($q->{form} eq "mqtt") { &form_mqtt() };
+	elsif ($q->{form} eq "mqtt") { &form_mqtt() }
+	elsif ($q->{form} eq "log") { &form_log() }
 
 	# Print the form
 	&form_print();
@@ -398,6 +399,17 @@ sub form_mqtt
 
 
 ##########################################################################
+# Form: Log
+##########################################################################
+
+sub form_log
+{
+	$template->param("FORM_LOG", 1);
+	$template->param("LOGLIST", LoxBerry::Web::loglist_html());
+	return();
+}
+
+##########################################################################
 # Print Form
 ##########################################################################
 
@@ -406,26 +418,21 @@ sub form_print
 	# Navbar
 	our %navbar;
 
-	$navbar{1}{Name} = "$L{'COMMON.LABEL_BRIDGES'}";
-	$navbar{1}{URL} = 'index.cgi?form=bridges';
-	$navbar{1}{active} = 1 if $q->{form} eq "bridges";
+	$navbar{10}{Name} = "$L{'COMMON.LABEL_BRIDGES'}";
+	$navbar{10}{URL} = 'index.cgi?form=bridges';
+	$navbar{10}{active} = 1 if $q->{form} eq "bridges";
 	
-	$navbar{2}{Name} = "$L{'COMMON.LABEL_DEVICES'}";
-	$navbar{2}{URL} = 'index.cgi?form=devices';
-	$navbar{2}{active} = 1 if $q->{form} eq "devices";
+	$navbar{20}{Name} = "$L{'COMMON.LABEL_DEVICES'}";
+	$navbar{20}{URL} = 'index.cgi?form=devices';
+	$navbar{20}{active} = 1 if $q->{form} eq "devices";
 	
-	$navbar{3}{Name} = "$L{'COMMON.LABEL_MQTT'}";
-	$navbar{3}{URL} = 'index.cgi?form=mqtt';
-	$navbar{3}{active} = 1 if $q->{form} eq "mqtt";
+	$navbar{30}{Name} = "$L{'COMMON.LABEL_MQTT'}";
+	$navbar{30}{URL} = 'index.cgi?form=mqtt';
+	$navbar{30}{active} = 1 if $q->{form} eq "mqtt";
 	
-	$navbar{4}{Name} = "$L{'COMMON.LABEL_TEMPLATEBUILDER'}";
-	$navbar{4}{URL} = 'index.cgi?form=templatebuilder';
-	$navbar{4}{URL} = "/admin/plugins/$lbpplugindir/templatebuilder.cgi";
-	$navbar{4}{target} = '_blank';
-	
-	$navbar{5}{Name} = "$L{'COMMON.LABEL_LOG'}";
-	$navbar{5}{URL} = LoxBerry::Web::loglist_url();
-	$navbar{5}{target} = '_blank';
+	$navbar{99}{Name} = "$L{'COMMON.LABEL_LOG'}";
+	$navbar{99}{URL} = 'index.cgi?form=log';
+	$navbar{99}{active} = 1 if $q->{form} eq "log";
 	
 	# Template
 	LoxBerry::Web::lbheader($L{'COMMON.LABEL_PLUGINTITLE'} . " V$version", "https://www.loxwiki.eu/x/t4RdAw", "");
@@ -1572,7 +1579,6 @@ sub getdevicedownloads
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentBy", Comment => "$currdev->{name} Sent By");
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentAtTimeLox", Comment => "$currdev->{name} Last Updated");
 	
-	my $xml = $VO->output;
 	$xml = $VI->output;
 	$payload{vi} = $xml;
 	$payload{viFilename} = "VI_NUKI_$currdev->{name}.xml";
