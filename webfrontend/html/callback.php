@@ -55,7 +55,13 @@
 
 	$nukidata = json_decode($json);
 	if (!empty($nukidata)) {
-		mqtt_publish( [ $nukidata->nukiId => $json, $nukidata->nukiId."/sentBy" => "Callback" ] );
+		mqtt_publish( [ 
+			$nukidata->nukiId => $json, 
+			$nukidata->nukiId."/sentBy" => 1,
+			$nukidata->nukiId."/sentByName" => "callback",
+			$nukidata->nukiId."/sentAtTimeLox" => epoch2lox(),
+			$nukidata->nukiId."/sentAtTimeISO" => currtime(),
+			] );
 	}
 	
 

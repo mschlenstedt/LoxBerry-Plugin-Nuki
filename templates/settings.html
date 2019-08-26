@@ -44,6 +44,24 @@
 		position	:relative;
 		margin-left	:10px;
 	}
+	.mqtttable {
+		vertical-align: middle;
+		text-align: left;
+		/* font-size: 90%; */
+		border-collapse: collapse;
+		border: 1px solid grey;
+		padding: 10px;
+		width: 100%;
+		
+	}
+	.mqtttable_vicol, .mqtttable_desccol {
+		border: 1px solid grey;
+		padding: 10px;
+	}
+	.mqtttable_headrow {
+	
+	}
+
 </style>
 
 <!-- ****************************************************************************************** -->
@@ -177,7 +195,7 @@
 		<!-- Popup: Device Downloads -->
 		<div data-role="popup" id="popupDownloads" data-dismissible="true" style="min-width:600px;max-width:800px;min-height:600px;" data-theme="a" class="ui-corner-all">
 			<div style="padding: 20px 20px;">
-				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR BRIDGES.HINT_BRIDGE_DETAILS> <span id="popupdevicesdownloadsheader"></span></h3>
+				<h3 class="ui-title" style="text-align: center;"><TMPL_VAR DEVICES.HINT_VIVO> <span id="popupdevicesdownloadsheader"></span></h3>
 				<div id="popupdevicesdownloadscontent"></div>
 				
 			</div>
@@ -647,8 +665,25 @@ function deviceDownloads ( intBridgeId, nukiId ) {
 		console.log( "deviceDownloads Success: ", data );
 		detHtmlObj.empty();
 		detHtmlObj.attr("style", "color:black;");
-		
-		detHtmlObj.append($('<p><a download='+data.payload.voFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vo)+'">Download Output Template</a></p>'));
+		detHtmlObj.append($('\
+			<table class="mqtttable">\
+			<tr>\
+				<th class="mqtttable_vicol ui-bar-a" colspan=2">Loxone Templates</th>\
+			</tr>\
+			<tr>\
+				<td class="mqtttable_vicol">Output Template</td>\
+				<td class="mqtttable_desccol">\
+					<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vo)+'">Download Output Template</a>\
+				</td>\
+			</tr>\
+			<tr>\
+				<td class="mqtttable_vicol">Input Template</td>\
+				<td class="mqtttable_desccol">\
+					<a download='+data.payload.viFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vi)+'">Download Input Template</a>\
+				</td>\
+			</tr>\
+			</table>\
+			<p>For simplicity, the Input Template is a "Dummy" Virtual HTTP Input, but does not need to fetch an url.</p>'));
 		
 		detHtmlObj.append($(data.payload.mqttTable));
 	
@@ -907,7 +942,7 @@ function getconfig() {
 					
 					$('<td />', { html: '\
 					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
-					title="<TMPL_VAR DEVICES.BUTTON_VO_DOWNLOAD>"> \
+					title="<TMPL_VAR DEVICES.BUTTON_VIVO>"> \
 					<img src="./images/devices_vo_download_32.png" height="32"></img></a></span> \
 					' }).appendTo(row);
 					

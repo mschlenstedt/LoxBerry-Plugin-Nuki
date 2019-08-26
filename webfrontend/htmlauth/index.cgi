@@ -1510,6 +1510,7 @@ sub getdevicedownloads
 	my %payload;
 	my $error = 0;
 	my $message = "";
+	my $xml;
 	
 	if(! defined $bridges->{$intBridgeId} ) {
 		return (1, "BridgeId does not exist", undef);
@@ -1530,8 +1531,8 @@ sub getdevicedownloads
 	
 	LOGDEB "Device type is $devtype ($deviceType{$devtype})";
 	
-	## Create VO's
-	##############
+	## Create VO template
+	#####################
 	my $VO = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
 		Title => "NUKI " . $currdev->{name},
 		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
@@ -1549,56 +1550,78 @@ sub getdevicedownloads
 			CmdOnHTTP => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
 		);
 	}
-	my $xml = $VO->output;
+	$xml = $VO->output;
 	$payload{vo} = $xml;
 	$payload{voFilename} = "VO_NUKI_$currdev->{name}.xml";
 	
-	## Create VI's
+	## Create VI template (via Virtual HTTP Input)
+	##############################################
 	my $topic_from_cfg = $mqttconfig->{topic};
 	my $topic = $topic_from_cfg;
 	$topic =~ tr/\//_/;
+		
+	my $VI = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
+		Title => "NUKI Status " . $currdev->{name},
+		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
+ 	);
+	
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_batteryCritical", Comment => "$currdev->{name} Battery Critical");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_mode", Comment => "$currdev->{name} Mode");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_nukiId", Comment => "$currdev->{name} Nuki ID");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_state", Comment => "$currdev->{name} State");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentBy", Comment => "$currdev->{name} Sent By");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_sentAtTimeLox", Comment => "$currdev->{name} Last Updated");
+	
+	my $xml = $VO->output;
+	$xml = $VI->output;
+	$payload{vi} = $xml;
+	$payload{viFilename} = "VI_NUKI_$currdev->{name}.xml";
+	
+	## Create MQTT representation of inputs
+	#######################################
+	
 	
 	my $m = "";
 	if($topic) {
-		$m .= "<table>\n";
+		$m .= '<table class="mqtttable">'."\n";
 		$m .= "<tr>\n";
-		$m .= "<th>Loxone VI</td>\n";
-		$m .= "<th>Description</td>\n";
+		$m .= '<th class="mqtttable_headrow mqtttable_vicol ui-bar-a">Loxone VI (via MQTT)</td>'."\n";
+		$m .= '<th class="mqtttable_headrow mqtttable_desccol ui-bar-a">Description</td>'."\n";
+		$m .= '</tr>'."\n";
+		
+		$m .= '<tr>'."\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_batteryCritical</td>\n";
+		$m .= '<td class="mqtttable_desccol">0...Battery ok 1 ... Battery low</td>'."\n";
 		$m .= "</tr>\n";
 		
 		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_batteryCritical</td>\n";
-		$m .= "<td>0 ... Battery ok, 1 ... Battery low</td>\n";
-		$m .= "</tr>\n";
-		
-		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_deviceType</td>\n";
-		$m .= "<td>";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_deviceType</td>\n";
+		$m .= '<td class="mqtttable_desccol">';
 		foreach( sort keys %deviceType ) {
-			$m .= "$_ ... $deviceType{$_} ";
+			$m .= "$_...$deviceType{$_} ";
 		}
 		$m .= "</td>\n";
 		$m .= "</tr>\n";
 		
 		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_mode</td>\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_mode</td>\n";
 		if( $devtype eq "0") {
-			$m .= "<td>Always 2 after complete setup</td>\n";
+			$m .= '<td class="mqtttable_desccol">'."Always '2' after complete setup</td>\n";
 		} elsif ($devtype eq "2") {
-			$m .= "<td>2 ... Door mode, 3 ... Continuous mode</td>\n";
+			$m .= '<td class="mqtttable_desccol">'."2...Door mode 3...Continuous mode</td>\n";
 		} else {
 			$m .= "<td>(unknown device type)</td>\n";
 		}
 		$m .= "</tr>\n";
 		
 		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_nukiId</td>\n";
-		$m .= "<td>ID of your Nuki device</td>\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_nukiId</td>\n";
+		$m .= '<td class="mqtttable_desccol">ID of your Nuki device</td>'."\n";
 		$m .= "</tr>\n";
 		
 		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_state</td>\n";
-		$m .= "<td>";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_state</td>\n";
+		$m .= '<td class="mqtttable_desccol">';
 		foreach( sort {$a<=>$b} keys %{$lockState{$devtype}} ) {
 			$m .= "$_...$lockState{$devtype}{$_} ";
 		}
@@ -1606,8 +1629,13 @@ sub getdevicedownloads
 		$m .= "</tr>\n";
 
 		$m .= "<tr>\n";
-		$m .= "<td>${topic}_${nukiId}_sentBy</td>\n";
-		$m .= "<td>Plugin property, showing what triggered the last data submission</td>\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_sentBy</td>\n";
+		$m .= '<td class="mqtttable_desccol">'."1...callback 2...cron 3...manual</td>\n";
+		$m .= "</tr>\n";
+
+		$m .= "<tr>\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_sentAtTimeLox</td>\n";
+		$m .= '<td class="mqtttable_desccol">'."Loxone Time representation of the update time &lt;v.u&gt;</td>\n";
 		$m .= "</tr>\n";
 	
 		$m .= "</table>\n";
