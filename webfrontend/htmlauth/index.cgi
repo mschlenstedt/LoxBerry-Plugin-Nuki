@@ -311,6 +311,45 @@ if( $q->{ajax} ) {
 	LOGSTART "Cronjob operation";
 	LOGINF "Starting callback maintenance";
 	callbacks();
+	LOGINF "Querying current Nuki Smartlock status";
+	
+	my $jsonobjdevices = LoxBerry::JSON->new();
+	my $devices = $jsonobjdevices->open(filename => $CFGFILEDEVICES, readonly => 1);
+	
+	foreach my $devicekey ( keys %$devices ) {
+		my $device=$devices->{$devicekey};
+		LOGINF "Checking device $device->{name} (nukiId $device->{nukiId} on bridge $device->{bridgeId})";
+		my ($error, $message, $response) = lockState($device->{bridgeId}, $device->{nukiId});
+		my $jsondata;
+		if($response->decoded_content) {
+			eval {
+				$jsondata = decode_json($response->decoded_content);
+			};
+		}
+		if($error or $jsondata->{success} ne "1") {
+			LOGDEB "Nuki response: HTTP " . $response->code . " " . $response->decoded_content;
+			# Generate an own json response
+			$jsondata=undef;
+			$jsondata->{nukiId} = $device->{nukiId};
+			$jsondata->{state} = -1;
+			$jsondata->{stateName} = $message;
+			
+		} else {
+			delete $jsondata->{success};
+			$jsondata->{nukiId} = $device->{nukiId};
+		}
+		
+		# Call PHP MQTT callback script to send data
+		
+		my $jsonstr = encode_json($jsondata);
+		LOGDEB "Json to send: $jsonstr";
+		$jsonstr = quotemeta($jsonstr);
+		my $callbackoutput = `cd $lbphtmldir && php $lbphtmldir/callback.php --json "$jsonstr" --sentbytype 2`;
+		LOGDEB "Callback output:";
+		LOGDEB $callbackoutput;
+		sleep 1;
+	}
+	
 	exit;
 
 	
@@ -780,6 +819,83 @@ sub checktoken
 		}
 	}
 	return (%response);
+}
+
+sub lockState
+{
+	my ($intBridgeId, $nukiId) = @_;
+	my $errors = 0;
+	my $message = "";
+	
+	if(!$intBridgeId) {
+		$errors++;
+		$message="lockState: intBridgeId parameter missing";
+		LOGCRIT $message;
+		return;
+	}
+	if(!$nukiId) {
+		$errors++;
+		$message="lockState: nukiId parameter missing";
+		LOGCRIT $message;
+		return;
+	}
+	
+	my $jsonobjbridges = LoxBerry::JSON->new();
+	my $bridges = $jsonobjbridges->open(filename => $CFGFILEBRIDGES, readonly => 1);
+	my $jsonobjdevices = LoxBerry::JSON->new();
+	my $devices = $jsonobjdevices->open(filename => $CFGFILEDEVICES, readonly => 1);
+	
+	if(!$bridges) {
+		$errors++;
+		$message="lockState: Could not open $CFGFILEBRIDGES - not configured yet?";
+		LOGERR $message;
+	}
+	if(!$errors and !$bridges->{$intBridgeId}) {
+		$errors++;
+		$message="lockState: Given intBridgeId $intBridgeId is not known in your Bridge configuration";
+	}
+	
+	my $bridgeObj = $bridges->{$intBridgeId};
+	
+	if( !$errors and ( !$bridgeObj->{ip} or !$bridgeObj->{port} or !$bridgeObj->{token}) ) {
+		$errors++;
+		$message="lockState: Given intBridgeId $intBridgeId configuration is not complete (ip, port, token?)";
+		LOGERR $message;
+	}
+	
+	my $response;
+	if( !$errors ) {
+		$response = api_call(
+			ip 		=> $bridgeObj->{ip},
+			port	=> $bridgeObj->{port},
+			apiurl	=> '/lockState',
+			token	=> $bridgeObj->{token},
+			params	=> "nukiId=" . $nukiId,
+		);
+		if($response->code eq "401") {
+			$errors++;
+			$message="lockState: The given token is invalid (HTTP 401)";
+			LOGERR $message;
+		} elsif($response->code eq "404") {
+			$errors++;
+			$message="lockState: The Smart Lock $nukiId is unknown (HTTP 404)";
+			LOGERR $message;
+		} elsif($response->code eq "503") {
+			$errors++;
+			$message="lockState: The Smart Lock $nukiId is OFFLINE (HTTP 503)";
+			LOGERR $message;
+		} elsif($response->code eq "200") {
+			$message="lockState: The Smart Lock $nukiId was queried successfully";
+			LOGOK $message;
+		} else {
+			$errors++;
+			$message="lockState: Unknown error state (HTTP ".$response->code.")";
+			LOGERR $message;
+		}
+	}
+	
+	return ($errors, $message, $response);
+	
 }
 
 sub checkonline
@@ -1412,7 +1528,7 @@ sub api_call
 	}
 	
 	# Check for running api call
-	my $fh = api_call_lock();
+	my $fh = api_call_block();
 	
 	require LWP::UserAgent;
 	
@@ -1446,13 +1562,13 @@ sub api_call
 		LOGERR "api_call: Response: " . $response->decoded_content if ($response->decoded_content);
 	}
 	
-	api_call_unlock($fh);
+	api_call_unblock($fh);
 	
 	return $response;
 
 }
 
-sub api_call_lock
+sub api_call_block
 {
 
 	CORE::open(my $fh, '>', $nuki_locking_file);
@@ -1461,28 +1577,28 @@ sub api_call_lock
 	while ( !$lockstate or Time::HiRes::gettimeofday() > ($starttime+20) ) {
 		$lockstate = flock($fh, 2);
 		if (!$lockstate) {
-			LOGINF "api_call_lock: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds...";
+			LOGINF "api_call_block: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds...";
 			Time::HiRes::sleep(0.05);
 		}
 	}
 	if ( !$lockstate ) {
-		LOGERR "api_call_lock: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
+		LOGERR "api_call_block: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
 		return undef;
 	} else {
-		LOGOK "api_call_lock: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
+		LOGOK "api_call_block: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
 	}
 	Time::HiRes::sleep(0.05);
 	return $fh;
 
 }
 
-sub api_call_unlock
+sub api_call_unblock
 {
 	my $fh = shift;
 
 	my $unlock = CORE::close($fh);
-	LOGOK "api_call_unlock: call_api closed/unlocked" if ($unlock);
-	LOGERR "api_call_unlock: Could not close/unlock" if (!$unlock);
+	LOGOK "api_call_unblock: call_api closed/unlocked" if ($unlock);
+	LOGERR "api_call_unblock: Could not close/unlock" if (!$unlock);
 	
 }
 

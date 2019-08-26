@@ -2,10 +2,33 @@
 
 	require_once "loxberry_system.php";
 	require_once "./phpMQTT/phpMQTT.php";
-		
+	
+	$SentByType = array (
+		1 => "callback",
+		2 => "cron",
+		3 => "manual",
+		254 => "testing"
+	);
+	
 	$mqttcfgfile = LBPCONFIGDIR."/mqtt.json";
-	$json = file_get_contents('php://input');
+	
+	if( $argc > 1 ) {
+		$longopts = array(
+			"json:",
+			"sentbytype:",
+		);
+		$options = getopt(null, $longopts);
+		if( empty($options["json"]) or empty($options["sentbytype"]) ) {
+			echo "--json and --sentbytype parameters required\n";
+			exit(1);
+		}
+		$options["json"] = stripslashes ( $options["json"] );
 		
+	} else {
+		$options["json"] = file_get_contents('php://input');
+		$options["sentbytype"] = 1;
+	}
+	
 	// Read MQTT config from plugin config
 	$mqttcfg = json_decode(file_get_contents($mqttcfgfile));
 	if( empty($mqttcfg) ) {
@@ -50,18 +73,23 @@
 	echo "Port : $port\n";
 	echo "User : $brokeruser\n";
 	echo "Pass : " . substr($brokerpass, 0, 1) . str_repeat("*", strlen($brokerpass)-1) . "\n";
-	echo "POST : $json\n";
+	echo "Type : " . $SentByType[$options["sentbytype"]] . " (" . $options["sentbytype"] . ")\n";
+	
+	echo "DATA : {$options["json"]}\n";
 
 
-	$nukidata = json_decode($json);
-	if (!empty($nukidata)) {
+	$nukidata = json_decode($options["json"]);
+	if ( !empty($nukidata) and isset($nukidata->nukiId) ) {
+		echo "OK: Publishing...\n";
 		mqtt_publish( [ 
-			$nukidata->nukiId => $json, 
-			$nukidata->nukiId."/sentBy" => 1,
-			$nukidata->nukiId."/sentByName" => "callback",
+			$nukidata->nukiId => $options["json"], 
+			$nukidata->nukiId."/sentBy" => $options["sentbytype"],
+			$nukidata->nukiId."/sentByName" => $SentByType[$options["sentbytype"]],
 			$nukidata->nukiId."/sentAtTimeLox" => epoch2lox(),
 			$nukidata->nukiId."/sentAtTimeISO" => currtime(),
 			] );
+	} else {
+		echo "ERROR: No valid json data\n";
 	}
 	
 
