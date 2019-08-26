@@ -394,6 +394,7 @@ sub form_mqtt
 	$template->param("FORM_MQTT", 1);
 	my $mqttplugindata = LoxBerry::System::plugindata("mqttgateway");
 	$template->param("MQTTGATEWAY_INSTALLED", 1) if($mqttplugindata);
+	$template->param("MQTTGATEWAY_PLUGINDBFOLDER", $mqttplugindata->{PLUGINDB_FOLDER}) if($mqttplugindata);
 	return();
 }
 

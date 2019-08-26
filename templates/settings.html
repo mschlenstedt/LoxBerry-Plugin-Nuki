@@ -200,7 +200,6 @@
 				
 			</div>
 		</div>
-		
 	</div> <!-- main -->
 
 </TMPL_IF>
@@ -210,7 +209,7 @@
 <TMPL_IF FORM_MQTT>
 
 	<div id="main" style="visibility:hidden"> <!-- style="display:none;" --> 
-	
+		
 		<form>
 		
 		<div class="lb_flex-container MQTT ui-state-disabled">
@@ -245,8 +244,10 @@
 			<div	class="lb_flex-item-help hint">
 				<TMPL_VAR MQTT.HINT_MQTTUseMQTTGateway>
 			</div>
+			<div style="text-align:center;" id="mqtt_onverviewlink"></div>
 			<div	class="lb_flex-item-spacer"></div>
 		</div>
+		
 	</TMPL_IF>
 	
 		<div class="lb_flex-container MQTT ui-state-disabled ownbroker">
@@ -376,6 +377,9 @@ $(function() {
 	} else {
 		$("#securepin_block").fadeIn();
 	}
+	<TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
+	$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">Open MQTT Gateway Incoming Overview</a>');
+	</TMPL_IF>
 
 });
 
