@@ -648,8 +648,9 @@ function deviceDownloads ( intBridgeId, nukiId ) {
 		detHtmlObj.empty();
 		detHtmlObj.attr("style", "color:black;");
 		
-		detHtmlObj.append($('<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vo)+'">Download Output Template</a>'));
-	
+		detHtmlObj.append($('<p><a download='+data.payload.voFilename+' href="data:text/plain;base64,'+window.btoa(data.payload.vo)+'">Download Output Template</a></p>'));
+		
+		detHtmlObj.append($(data.payload.mqttTable));
 	
 	
 	})

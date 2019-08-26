@@ -7,7 +7,7 @@ use HTML::Entities;
 
 package LoxBerry::LoxoneTemplateBuilder;
 
-our $VERSION = "2.0.0.3";
+our $VERSION = "2.0.0.4";
 our $DEBUG = 0;
 
 if ($DEBUG) {
@@ -324,6 +324,114 @@ sub output
 	return $o;
 
 }
+
+sub htmltable
+{
+	my $self = shift;
+	my $crlf = "\r\n";
+	my $o;
+	
+	$o .= '<div class="templatebuilder_table" style="display:table;width:100%;">'.$crlf;
+	
+	
+	if($self->{_type} eq 'VirtualInHttp') {
+		$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Title}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '	</div>'.$crlf;
+		
+		foreach my $VIcmd ( @{$self->{VirtualInHttpCmd}} ) {
+			next if $VIcmd->{_deleted};
+		
+			$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+			$o .= '		<div class="templatebuilder_row templatebuilder_row_name" style="display:table-row">'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Title}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Comment}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Check}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '		</div>'.$crlf;
+			$o .= '	</div>'.$crlf;
+			
+		}
+	}
+
+	if($self->{_type} eq 'VirtualInUdp') {
+		$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Title}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Address}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Port}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '	</div>'.$crlf;
+		
+		foreach my $VIcmd ( @{$self->{VirtualInHttpCmd}} ) {
+			next if $VIcmd->{_deleted};
+		
+			$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+			$o .= '		<div class="templatebuilder_row templatebuilder_row_name" style="display:table-row">'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Title}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Comment}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Check}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '		</div>'.$crlf;
+			$o .= '	</div>'.$crlf;
+			
+		}
+	}
+	
+	if($self->{_type} eq 'VirtualOut') {
+		$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Title}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '		<div class="templatebuilder_row" style="display:table-row">'.$crlf;
+		$o .= "			".HTML::Entities::encode_entities($self->{Address}).$crlf;
+		$o .= '		</div>'.$crlf;
+		$o .= '	</div>'.$crlf;
+		
+		foreach my $VIcmd ( @{$self->{VirtualInHttpCmd}} ) {
+			next if $VIcmd->{_deleted};
+		
+			$o .= '	<div class="templatebuilder_body" style="display:table-row-group">'.$crlf;
+			$o .= '		<div class="templatebuilder_row templatebuilder_row_name" style="display:table-row">'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Title}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{Comment}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '			<div class="templatebuilder_cell" style="display:table-cell;">'.$crlf;
+			$o .= "				".HTML::Entities::encode_entities($VIcmd->{CmdOnHTTP}).$crlf;
+			$o .= '			</div>'.$crlf;
+			$o .= '		</div>'.$crlf;
+			$o .= '	</div>'.$crlf;
+			
+		}
+	}
+	
+	$o .= '</div>'.$crlf;
+
+	return $o;
+
+}
+
+
+
 
 sub delete 
 {

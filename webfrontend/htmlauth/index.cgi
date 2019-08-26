@@ -1531,7 +1531,7 @@ sub getdevicedownloads
 	LOGDEB "Device type is $devtype ($deviceType{$devtype})";
 	
 	## Create VO's
-
+	##############
 	my $VO = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
 		Title => "NUKI " . $currdev->{name},
 		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
@@ -1553,18 +1553,68 @@ sub getdevicedownloads
 	$payload{vo} = $xml;
 	$payload{voFilename} = "VO_NUKI_$currdev->{name}.xml";
 	
-	## Get MQTT 
-	my $topic = $mqttconfig->{topic};
+	## Create VI's
+	my $topic_from_cfg = $mqttconfig->{topic};
+	my $topic = $topic_from_cfg;
+	$topic =~ tr/\//_/;
 	
-	# ... add calculation of callback VIs
+	my $m = "";
+	if($topic) {
+		$m .= "<table>\n";
+		$m .= "<tr>\n";
+		$m .= "<th>Loxone VI</td>\n";
+		$m .= "<th>Description</td>\n";
+		$m .= "</tr>\n";
+		
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_batteryCritical</td>\n";
+		$m .= "<td>0 ... Battery ok, 1 ... Battery low</td>\n";
+		$m .= "</tr>\n";
+		
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_deviceType</td>\n";
+		$m .= "<td>";
+		foreach( sort keys %deviceType ) {
+			$m .= "$_ ... $deviceType{$_} ";
+		}
+		$m .= "</td>\n";
+		$m .= "</tr>\n";
+		
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_mode</td>\n";
+		if( $devtype eq "0") {
+			$m .= "<td>Always 2 after complete setup</td>\n";
+		} elsif ($devtype eq "2") {
+			$m .= "<td>2 ... Door mode, 3 ... Continuous mode</td>\n";
+		} else {
+			$m .= "<td>(unknown device type)</td>\n";
+		}
+		$m .= "</tr>\n";
+		
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_nukiId</td>\n";
+		$m .= "<td>ID of your Nuki device</td>\n";
+		$m .= "</tr>\n";
+		
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_state</td>\n";
+		$m .= "<td>";
+		foreach( sort {$a<=>$b} keys %{$lockState{$devtype}} ) {
+			$m .= "$_...$lockState{$devtype}{$_} ";
+		}
+		$m .= "</td>\n";
+		$m .= "</tr>\n";
+
+		$m .= "<tr>\n";
+		$m .= "<td>${topic}_${nukiId}_sentBy</td>\n";
+		$m .= "<td>Plugin property, showing what triggered the last data submission</td>\n";
+		$m .= "</tr>\n";
 	
+		$m .= "</table>\n";
 	
-	
-	
-	
-	
-	
-	
+	}
+	$payload{mqttTable} = $m;
+		
 	$error = 0;
 	$message = "Generated successfully";
 	return ($error, $message, \%payload);
