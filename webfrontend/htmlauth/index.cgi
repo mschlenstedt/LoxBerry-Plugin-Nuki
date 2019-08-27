@@ -250,7 +250,7 @@ if( $q->{ajax} ) {
 		print JSON->new->canonical(1)->encode(\%response);
 	}
 	
-	# Manage callbacks of a SINGLE bridge
+	# Manage callbacks of ALL bridge
 	if( $q->{ajax} eq "callback_remove_all_from_all" ) {
 		LOGINF "callback_remove_all_from_all: Remove all Callbacks from all bridges was called.";
 		callback_remove_all_from_all();
@@ -263,6 +263,14 @@ if( $q->{ajax} ) {
 		($response{error}, $response{message}, $response{callbacks}) = ajax_callback_list($q->{bridgeid});
 		print JSON->new->canonical(1)->encode(\%response);
 	}
+	
+	# Reset callbacks of a SINGLE bridge (clear all and set ours)
+	if( $q->{ajax} eq "bridge_reset_callbacks" ) {
+		LOGINF "bridge_reset_callbacks: bridge_reset_callbacks was called.";
+		($response{error}, $response{message}, $response{callbacks}) = bridge_reset_callbacks($q->{bridgeid});
+		print JSON->new->canonical(1)->encode(\%response);
+	}
+	
 	
 	
 	# Get config
@@ -1122,6 +1130,28 @@ sub ajax_callback_list
 	return(0, "Callbacks received ok", $callbacks);
 
 }
+
+
+sub bridge_reset_callbacks
+{
+	
+	my ($bridgeid) = @_;
+
+	my $jsonobj = LoxBerry::JSON->new();
+	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES, readonly => 1);
+	
+	return (1, "Bridge not defined") if (!defined $bridgeid or !defined $cfg->{$bridgeid});
+	
+	my $bridgeobj = $cfg->{$bridgeid};
+	
+	callback_remove_all_from_bridge( $bridgeid );
+	my ($errors, $message) = callback($bridgeid);
+	
+	return($errors, $message);
+
+}
+
+
 
 # Checks the callbacks for consistency
 # Returns: 	-1 .... Duplicates removed - caller should redo the check

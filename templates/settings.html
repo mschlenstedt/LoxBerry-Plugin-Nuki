@@ -652,12 +652,46 @@ function bridgeDetails ( intBridgeId ) {
 				gridObj.append('<div class="ui-block-b" style="width:92%"><div class="ui-bar ui-bar-d" style="min-height:20px">'+this.url+'</div>');
 			});
 			
+			// Reset callbacks button
+			button = $('\
+				<button class="ui-btn ui-icon-refresh ui-btn-icon-left ui-corner-all reset_callbacks" id="reset_callbacks" data-inline="true" data-intbridgeid="'+intBridgeId+'"><TMPL_VAR BRIDGEDETAILS.BUTTON_RESETCALLBACKS></button>');
+			detCallbackObj.append(button);
+			// defCallbackObj.append('<div id
+			// Create event handler for reset callbacks
+				$(".reset_callbacks").on('click', function(e) {
+					console.log("Bridge details", $(this).attr("data-intbridgeid"));
+					bridgeResetCallbacks( $(this).attr("data-intbridgeid") );
+				});
+		
 		} else {
 			detCallbackObj.empty();
 			
 		}
 	});
 }
+
+function bridgeResetCallbacks ( intBridgeId ) {
+
+	console.log("bridgeResetCallbacks", intBridgeId);
+	$("#reset_callbacks").addClass('ui-disabled');
+	$.ajax({ 
+		type: 'POST',
+		data: { ajax: 'bridge_reset_callbacks', bridgeid: intBridgeId, secpin: $('#securepin').val() }
+	})
+	.fail(function( data ) {
+		detCallbackObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
+		console.log( "bridgeResetCallbacks Fail", data );
+	})
+	.done(function( data ) {
+		// Recall bridgeDetails popup
+		bridgeDetails ( intBridgeId );
+	
+	
+	});
+
+
+}
+
 
 // Show device downloads
 function deviceDownloads ( intBridgeId, nukiId ) {
