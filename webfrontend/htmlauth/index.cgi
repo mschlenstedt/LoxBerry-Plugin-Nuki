@@ -337,7 +337,11 @@ if( $q->{ajax} ) {
 			};
 		}
 		if($error or $jsondata->{success} ne "1") {
-			LOGDEB "Nuki response: HTTP " . $response->code . " " . $response->decoded_content;
+			if( $jsondata->{success} ne "1" ) {
+				$message = "Bridge responded ok, but returned success=FALSE querying the device.";
+				LOGERR $message;
+			}
+			LOGDEB "Nuki response: HTTP " . $response->code . " Content: " . $response->decoded_content;
 			# Generate an own json response
 			$jsondata=undef;
 			$jsondata->{nukiId} = $device->{nukiId};
@@ -888,7 +892,7 @@ sub lockState
 			$message="lockState: The Smart Lock $nukiId is OFFLINE (HTTP 503)";
 			LOGERR $message;
 		} elsif($response->code eq "200") {
-			$message="lockState: The Smart Lock $nukiId was queried successfully";
+			$message="lockState: The Smart Lock $nukiId was queried successfully (HTTP 200)";
 			LOGOK $message;
 		} else {
 			$errors++;
