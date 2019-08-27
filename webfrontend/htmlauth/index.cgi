@@ -999,7 +999,7 @@ sub searchdevices
 				LOGINF "searchdevices: /info found device: " . $results->{nukiId} . "";
 				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
 				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
-				$cfgdev->{$results->{nukiId}}->{name} = $results->{name};
+				$cfgdev->{$results->{nukiId}}->{BLEName} = $results->{name};
 				$cfgdev->{$results->{nukiId}}->{deviceType} = $results->{deviceType};
 				$cfgdev->{$results->{nukiId}}->{rssi} = $results->{rssi};
 				$cfgdev->{$results->{nukiId}}->{paired} = $results->{paired};
