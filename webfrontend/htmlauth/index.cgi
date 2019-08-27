@@ -532,9 +532,8 @@ sub searchbridges
 		LOGINF "searchbridges: ErrorCode: $bridges->{errorCode}";
 		if ($bridges->{errorCode} eq "0") {
 			# Config
-			my $cfgfile = $lbpconfigdir . "/bridges.json";
 			my $jsonobj = LoxBerry::JSON->new();
-			my $cfg = $jsonobj->open(filename => $cfgfile);
+			my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 			for my $serverBridge ( @{$bridges->{bridges}} ){
 				LOGINF "searchbridges: Found Bridge serverId: " . $serverBridge->{bridgeId};
 				
@@ -580,9 +579,8 @@ sub deletebridge
 		$errors++;
 	} else {
 		my ($error, $message) = callback_uninstall($bridgeid);
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		delete $cfg->{$bridgeid};
 		$jsonobj->write();
 	}
@@ -599,9 +597,8 @@ sub editbridge
 		$response{message} = "No Bridge ID given.";
 	} else {
 		LOGINF "editbridge: Editing Bridge data for $bridgeid.\n";
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
 			LOGINF "editbridge: Found Bridge: Saving new data.\n";
 			$cfg->{$bridgeid}->{ip} = $q->{bridgeip};
@@ -643,9 +640,8 @@ sub addbridge
 		# $response{error} = 1;
 		# $response{message} = "No BridgeID given.";
 	# } else {
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$q->{bridgeid}}) {
 			LOGINF "addbridge: Bridge already exists.\n";
 			$response{error} = 1;
@@ -685,9 +681,8 @@ sub activatebridge
 		$response{message} = "No Bridge ID given.";
 	} else {
 		LOGINF "activatebridge: Reading config for Bridge $bridgeid.";
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
 			LOGINF "activatebridge: Found Bridge: Try to auth.";
 			# Auth
@@ -750,9 +745,8 @@ sub getbridgeconfig
 		$response{message} = "No Bridge ID given.";
 	} else {
 		LOGINF "getbridgeconfig: Reading config for Bridge $bridgeid.\n";
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
 			LOGINF "getbridgeconfig: Found Bridge: Reading data.\n";
 			$response{ip} = $cfg->{$bridgeid}->{ip};
@@ -779,9 +773,8 @@ sub checktoken
 		$response{message} = "No Bridge ID given.";
 	} else {
 		LOGINF "checktoken: Reading config for Bridge $bridgeid.";
-		my $cfgfile = $lbpconfigdir . "/bridges.json";
 		my $jsonobj = LoxBerry::JSON->new();
-		my $cfg = $jsonobj->open(filename => $cfgfile);
+		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
 			LOGINF "checktoken: Found Bridge: Check token.";
 			# Check online status
@@ -930,13 +923,14 @@ sub searchdevices
 {
 	my $errors;
 	# Devices config
-	unlink ( $CFGFILEDEVICES );
 	my $jsonobjdev = LoxBerry::JSON->new();
 	my $cfgdev = $jsonobjdev->open(filename => $CFGFILEDEVICES);
+	# Clear content
+	foreach ( keys %$cfgdev ) { delete $cfgdev->{$_}; }
+	
 	# Bridges config
-	my $cfgfile = $lbpconfigdir . "/bridges.json";
 	my $jsonobj = LoxBerry::JSON->new();
-	my $cfg = $jsonobj->open(filename => $cfgfile);
+	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 	# Parsing Bridges
 	foreach my $key (keys %$cfg) {
 		LOGINF "searchdevices: Parsing devices from Bridge " . $cfg->{$key};
@@ -1115,9 +1109,8 @@ sub ajax_callback_list
 	
 	my ($bridgeid) = @_;
 
-	my $cfgfile = $lbpconfigdir . "/bridges.json";
 	my $jsonobj = LoxBerry::JSON->new();
-	my $cfg = $jsonobj->open(filename => $cfgfile);
+	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 	
 	return (1, "Bridge not defined") if (!defined $bridgeid or !defined $cfg->{$bridgeid});
 	
@@ -1224,9 +1217,8 @@ sub callback_uninstall
 	
 	LOGINF "callback_uninstall: Uninstall callbacks for $bridgeid";
 	
-	my $cfgfile = $lbpconfigdir . "/bridges.json";
 	my $jsonobj = LoxBerry::JSON->new();
-	my $cfg = $jsonobj->open(filename => $cfgfile);
+	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 	
 	return (1, "Bridge not defined") if (!defined $bridgeid or !defined $cfg->{$bridgeid});
 	

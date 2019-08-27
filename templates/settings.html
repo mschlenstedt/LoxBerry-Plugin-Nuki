@@ -389,9 +389,9 @@ $(function() {
 	} else {
 		$("#securepin_block").fadeIn();
 	}
-	<TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
-	$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">Open MQTT Gateway Incoming Overview</a>');
-	</TMPL_IF>
+	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
+		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">Open MQTT Gateway Incoming Overview</a>');
+	// </TMPL_IF>
 
 });
 
@@ -793,6 +793,9 @@ function checkSecurePIN() {
 		getconfig();
 		// $("#main_form").fadeIn();
 		$("#main").css( 'visibility', 'visible' );
+		if (formdevices) {
+			$('#btnsearchdevices').trigger("click");
+		}
 	})
 	.always(function( data ) {
 		console.log( "checksecpin Finished" );
