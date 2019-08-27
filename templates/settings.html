@@ -220,7 +220,7 @@
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item">
 				<input width="100%" value="" id="MQTTTopic" name="MQTTTopic" type="text" class="textfield" 
-				data-validation-rule="special:alphanumeric" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_MQTTTopic>">
+				data-validation-rule="^(?!.*//.*)[^\+#]+$" data-validation-error-msg="<TMPL_VAR MQTT.MSG_VALINVALID_MQTTTopic>">
 			</div>
 			<div	class="lb_flex-item-spacer"></div>
 			<div	class="lb_flex-item-help hint">
