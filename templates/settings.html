@@ -980,6 +980,8 @@ function getconfig() {
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NUKIID>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_NAME>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_BRIDGEID>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_PAIRED>' }).appendTo(theader);
+					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_RSSI>' }).appendTo(theader);
 					$('<th />', { text: '<TMPL_VAR DEVICES.LABEL_ACTIONS>' }).appendTo(theader);
 				// Create table body.
 				var tbody = $('<tbody />').appendTo(table);
@@ -994,6 +996,8 @@ function getconfig() {
 					$('<td />', { text: item.nukiId }).appendTo(row);
 					$('<td />', { text: item.name }).appendTo(row);
 					$('<td />', { text: item.bridgeId }).appendTo(row);
+					$('<td />', { text: ( item.paired == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+					$('<td />', { text: item.rssi }).appendTo(row);
 					
 					$('<td />', { html: '\
 					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \

@@ -945,7 +945,7 @@ sub searchdevices
 	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 	# Parsing Bridges
 	foreach my $key (keys %$cfg) {
-		LOGINF "searchdevices: Parsing devices from Bridge " . $cfg->{$key};
+		LOGINF "searchdevices: Parsing devices from Bridge " . $key;
 		if (!$cfg->{$key}->{token}) {
 			LOGINF "searchdevices: No token in config - skipping.";
 			next;
@@ -972,15 +972,43 @@ sub searchdevices
 			my $jsonobjgetdev = LoxBerry::JSON->new();
 			my $devices = $jsonobjgetdev->parse($response->decoded_content);
 			
-			# Parsing Devices
+			# Parsing /list Devices
 			for my $results( @{$devices} ){
-				LOGINF "searchdevices: Found Device: " . $results->{nukiId} . "";
+				LOGINF "searchdevices: /list found device: " . $results->{nukiId} . "";
 				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
 				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
 				$cfgdev->{$results->{nukiId}}->{name} = $results->{name};
 				$cfgdev->{$results->{nukiId}}->{deviceType} = $results->{deviceType};
+				$cfgdev->{$results->{nukiId}}->{rssi} = "";
+				$cfgdev->{$results->{nukiId}}->{paired} = 0;
 			}
+			
+			$response = api_call(
+				ip 		=> $cfg->{$bridgeid}->{ip},
+				port	=> $cfg->{$bridgeid}->{port},
+				apiurl	=> '/info',
+				token	=> $cfg->{$bridgeid}->{token}
+			);
+			
+			my $jsonobjdevinfo = LoxBerry::JSON->new();
+			my $respjson = $jsonobjdevinfo->parse($response->decoded_content);
+			$devices = $respjson->{scanResults};
+			LOGDEB "/info call: " . $response->decoded_content;
+			# Parsing /info Devices
+			for my $results( @{$devices} ){
+				LOGINF "searchdevices: /info found device: " . $results->{nukiId} . "";
+				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
+				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
+				$cfgdev->{$results->{nukiId}}->{name} = $results->{name};
+				$cfgdev->{$results->{nukiId}}->{deviceType} = $results->{deviceType};
+				$cfgdev->{$results->{nukiId}}->{rssi} = $results->{rssi};
+				$cfgdev->{$results->{nukiId}}->{paired} = $results->{paired};
+			}
+			
+			
+			
 			$jsonobjdev->write();
+			
 		}	
 	}
 	return ($errors);
