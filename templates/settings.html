@@ -80,6 +80,7 @@
 					data-mini="true" 
 					data-icon="search"><TMPL_VAR BRIDGES.BUTTON_SEARCH></a>
 				<a href="#popupAdd" 
+					id="popupAddButton" 
 					data-rel="popup" 
 					data-position-to="window" 
 					data-transition="pop" 
@@ -114,11 +115,11 @@
 					<input type="text" name="addbridgeid" id="addbridgeid" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_BRIDGEID>" data-theme="a">
 					-->
 					<label for="addbridgeip"><TMPL_VAR BRIDGES.LABEL_IPADDRESS></label>
-					<input type="text" name="addbridgeip" id="addbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a">
+					<input type="text" name="addbridgeip" id="addbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_IP>" data-validation-rule="special:hostname_or_ipaddr">
 					<label for="addbridgeport"><TMPL_VAR BRIDGES.LABEL_PORT></label>
-					<input type="text" name="addbridgeport" id="addbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a">
+					<input type="text" name="addbridgeport" id="addbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_PORT>" data-validation-rule="special:port">
 					<label for="addbridgetoken"><TMPL_VAR BRIDGES.LABEL_TOKEN></label>
-					<input type="text" name="addbridgetoken" id="addbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a">
+					<input type="text" name="addbridgetoken" id="addbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_TOKEN>" data-validation-rule="special:alphanumeric">
 					<a href="javascript:addBridge();" id="btnaddbridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
 					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></a>
 					<div class="hint" id="add_hint">&nbsp;</div>
@@ -132,11 +133,11 @@
 				<h3 class="ui-title"><TMPL_VAR BRIDGES.HINT_EDIT_BRIDGE> <span id="popupbridgeidedit"></span></h3>
 				<form>
 					<label for="editbridgeip"><TMPL_VAR BRIDGES.LABEL_IPADDRESS></label>
-					<input type="text" name="editbridgeip" id="editbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a">
+					<input type="text" name="editbridgeip" id="editbridgeip" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_IPADDRESS>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_IP>" data-validation-rule="special:hostname_or_ipaddr">
 					<label for="editbridgeport"><TMPL_VAR BRIDGES.LABEL_PORT></label>
-					<input type="text" name="editbridgeport" id="editbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a">
+					<input type="text" name="editbridgeport" id="editbridgeport" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_PORT>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_PORT>" data-validation-rule="special:port">
 					<label for="editbridgetoken"><TMPL_VAR BRIDGES.LABEL_TOKEN></label>
-					<input type="text" name="editbridgetoken" id="editbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a">
+					<input type="text" name="editbridgetoken" id="editbridgetoken" value="" placeholder="<TMPL_VAR BRIDGES.LABEL_TOKEN>" data-theme="a" data-validation-error-msg="<TMPL_VAR BRIDGES.VALERR_INVALID_TOKEN>" data-validation-rule="special:alphanumeric">
 					<a href="#" id="btneditbridge" class="ui-btn ui-corner-all ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check"
 					data-transition="flow"><TMPL_VAR BRIDGES.BUTTON_SAVE></a>
 					<div class="hint" id="edit_hint">&nbsp;</div>
@@ -392,6 +393,22 @@ $(function() {
 	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
 		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">Open MQTT Gateway Incoming Overview</a>');
 	// </TMPL_IF>
+
+	// Eventhandlers for "Add" to enable and disable validation
+	$("#popupAddButton").click( function(e) {
+		allFormInputs = $("#popupAdd").find(":input");
+		allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
+		console.log("popupAddButton: Found "+allFormInputs.length+" form inputs");
+	});
+	$("#popupAdd").on( "popupafterclose" , function(e) {
+		allFormInputs = $("#popupAdd").find(":input");
+		allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
+		allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
+		console.log("popupAdd afterclose: Found "+allFormInputs.length+" form inputs");
+	});
+	// The btnbrideedit event handler is in getConfig (as it is generated dynamically
+	
+
 
 });
 
@@ -939,16 +956,22 @@ function getconfig() {
 						console.log( "checkonline Finished" );
 					});
 					$('<td />', { html: '\
-					<a href="javascript:activateBridge(' + intBridgeId + ')" id="btnbridgeactivate" name="btnbridgeactivate" \
+					<a href="javascript:activateBridge(' + intBridgeId + ')" id="btnbridgeactivate'+intBridgeId+'" name="btnbridgeactivate'+intBridgeId+'" \
 					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + intBridgeId + '"> \
 					<img src="./images/link_32.png" height="32"></img></a> \
-					<a href="javascript:askEditBridge(' + intBridgeId + ')" id="btnbridgeedit" name="btnbridgeedit" \
-					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + intBridgeId + '"> \
+					\
+					<a href="javascript:askEditBridge(' + intBridgeId + ')" class="btnbrideedit" id="btnbridgeedit'+intBridgeId+'" name="btnbridgeedit'+intBridgeId+'" \
+					title="<TMPL_VAR BRIDGES.BUTTON_EDIT> ' + intBridgeId + '" data-intbridgeid="'+intBridgeId+'"> \
 					<img src="./images/gear_32.png" height="32"></img></a> \
-					<span class="bridgedetailslink" data-intbridgeid="'+intBridgeId+'"><a href="#" id="btnbridgeinfo" name="btnbridgeinfo" \
-					title="<TMPL_VAR BRIDGES.BUTTON_INFO> ' + intBridgeId + '"> \
-					<img src="./images/info2_32.png" height="32"></img></a></span> \
-					<a href="javascript:askDeleteBridge(' + intBridgeId + ')" id="btnbridgedelete" name="btnbridgedelete" \
+					\
+					<span class="bridgedetailslink" data-intbridgeid="'+intBridgeId+'">\
+						<a href="#" id="btnbridgeinfo'+intBridgeId+'" name="btnbridgeinfo'+intBridgeId+'" \
+						title="<TMPL_VAR BRIDGES.BUTTON_INFO> ' + intBridgeId + '"> \
+						<img src="./images/info2_32.png" height="32"></img>\
+						</a>\
+					</span>\
+					\
+					<a href="javascript:askDeleteBridge(' + intBridgeId + ')" data-intbridgeid="'+intBridgeId+'" id="btnbridgedelete'+intBridgeId+'" name="btnbridgedelete'+intBridgeId+'" \
 					title="<TMPL_VAR BRIDGES.BUTTON_DELETE> ' + intBridgeId + '"> \
 					<img src="./images/cancel_32.png" height="32"></img></a> \
 					' }).appendTo(row);
@@ -959,6 +982,21 @@ function getconfig() {
 					$(".bridgedetailslink").on('click', function(e) {
 						console.log("Bridge details", $(this).attr("data-intbridgeid"));
 						bridgeDetails( $(this).attr("data-intbridgeid") );
+					});
+					
+					// Eventhandlers for "Edit" to enable and disable validation
+					$(".btnbrideedit").click( function(e) {
+						allFormInputs = $("#popupEdit").find(":input");
+						allFormInputs.map(function(index,dom){validate_enable("#"+dom.id)});
+						console.log("popupEditButton: Found "+allFormInputs.length+" form inputs");
+					});
+					$("#popupEdit").on( "popupafterclose" , function(e) {
+						allFormInputs = $("#popupEdit").find(":input");
+						allFormInputs.map(function(index,dom){validate_clean_objects("#"+dom.id)});
+						allFormInputs.map(function(index,dom){$("#error-msg-"+dom.id).remove()});
+						allFormInputs.map(function(index,dom){$("#"+dom.id).css('background-color','transparent');});
+						
+						console.log("popupEdit afterclose: Found "+allFormInputs.length+" form inputs");
 					});
 
 				//$("#data-list").trigger("create");
