@@ -7,7 +7,7 @@ use HTML::Entities;
 
 package LoxBerry::LoxoneTemplateBuilder;
 
-our $VERSION = "2.0.0.4";
+our $VERSION = "2.0.0.5";
 our $DEBUG = 0;
 
 if ($DEBUG) {
@@ -54,6 +54,11 @@ sub VirtualInHttpCmd
 	if (@_ % 2) {
 		Carp::croak "Illegal parameter list has odd number of values\n" . join("\n", @_) . "\n";
 	}
+	
+	if( $self->{_type} ne "VirtualInHttp" ) {
+		Carp::croak "Call of VirtualInHttpCmd does not fit to class type " . $self->{_type};
+	}
+	
 	my %params = @_;
 
 	my %VICmd = ( 
@@ -118,6 +123,11 @@ sub VirtualInUdpCmd
 	if (@_ % 2) {
 		Carp::croak "Illegal parameter list has odd number of values\n" . join("\n", @_) . "\n";
 	}
+	
+	if( $self->{_type} ne "VirtualInUdp" ) {
+		Carp::croak "Call of VirtualInUdpCmd does not fit to class type " . $self->{_type};
+	}
+
 	my %params = @_;
 
 	my %VICmd = ( 
@@ -183,6 +193,11 @@ sub VirtualOutCmd
 	if (@_ % 2) {
 		Carp::croak "Illegal parameter list has odd number of values\n" . join("\n", @_) . "\n";
 	}
+	
+	if( $self->{_type} ne "VirtualOut" ) {
+		Carp::croak "Call of VirtualOutCmd does not fit to class type " . $self->{_type};
+	}
+	
 	my %params = @_;
 
 	my %VICmd = ( 
