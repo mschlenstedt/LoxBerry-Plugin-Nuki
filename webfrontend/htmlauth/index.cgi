@@ -1740,7 +1740,7 @@ sub getdevicedownloads
 	my $topic = $topic_from_cfg;
 	$topic =~ tr/\//_/;
 		
-	my $VI = LoxBerry::LoxoneTemplateBuilder->VirtualOut(
+	my $VI = LoxBerry::LoxoneTemplateBuilder->VirtualInHttp(
 		Title => "NUKI Status " . $currdev->{name},
 		Comment => "Created by LoxBerry Nuki Plugin ($mday.$mon.$year)",
  	);
