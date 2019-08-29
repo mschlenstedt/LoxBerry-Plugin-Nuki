@@ -1727,7 +1727,7 @@ sub getdevicedownloads
 		LOGDEB "actionkey $actionkey actionname $actionname";
 		$VO->VirtualOutCmd(
 			Title => $actionname,
-			CmdOnHTTP => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
+			CmdOn => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
 		);
 	}
 	$xml = $VO->output;
