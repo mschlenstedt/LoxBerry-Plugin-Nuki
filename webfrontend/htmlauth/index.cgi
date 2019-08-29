@@ -98,8 +98,8 @@ my %lockAction = (
 		1 => "unlock",
 		2 => "lock",
 		3 => "unlatch",
-		4 => "lock 'n' go",
-		5 => "lock 'n' go with unlatch"
+		4 => "lock&go",
+		5 => "lock&go with unlatch"
 	},
 	2 => {
 		1 => "activate rto",
