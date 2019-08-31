@@ -391,7 +391,7 @@ $(function() {
 		$("#securepin_block").fadeIn();
 	}
 	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
-		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank">Open MQTT Gateway Incoming Overview</a>');
+		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
 	// </TMPL_IF>
 
 	// Eventhandlers for "Add" to enable and disable validation
@@ -657,10 +657,9 @@ function bridgeDetails ( intBridgeId ) {
 		if ( data.callbacks ) {
 			currBridgeObj = storedBridges[intBridgeId];
 			detCallbackObj.empty();
-			detCallbackObj.append('<h3>Registered Callbacks</h3>');
+			detCallbackObj.append('<h3><TMPL_VAR BRIDGEDETAILS.HEADING_REGISTERED_CALLBACKS></h3>');
 			detCallbackObj.append('<div class="ui-grid-b" id="callbackGrid">');
 			gridObj=$("#callbackGrid");
-			
 			
 			gridObj.append('<div class="ui-block-a" style="width:8%"><div class="ui-bar ui-bar-a" style="height:20px">'+'ID'+'</div></div>');
 			gridObj.append('<div class="ui-block-b" style="width:92%"><div class="ui-bar ui-bar-a" style="height:20px">'+'URL'+'</div></div>');
@@ -737,22 +736,22 @@ function deviceDownloads ( intBridgeId, nukiId ) {
 		detHtmlObj.append($('\
 			<table class="mqtttable">\
 			<tr>\
-				<th class="mqtttable_vicol ui-bar-a" colspan=2">Loxone Templates</th>\
+				<th class="mqtttable_vicol ui-bar-a" colspan=2"><TMPL_VAR DEVICES.VIVO_HEADING_LOXONE_TEMPLATES></th>\
 			</tr>\
 			<tr>\
-				<td class="mqtttable_vicol">Output Template</td>\
+				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></td>\
 				<td class="mqtttable_desccol">\
-					<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vo)+'">Download Output Template</a>\
+					<a download='+data.payload.voFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vo)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_OUTPUT_TEMPLATE></a>\
 				</td>\
 			</tr>\
 			<tr>\
-				<td class="mqtttable_vicol">Input Template</td>\
+				<td class="mqtttable_vicol"><TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></td>\
 				<td class="mqtttable_desccol">\
-					<a download='+data.payload.viFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vi)+'">Download Input Template</a>\
+					<a download='+data.payload.viFilename+' href="data:text/plain;base64,'+b64EncodeUnicode(data.payload.vi)+'">Download <TMPL_VAR DEVICES.VIVO_LABEL_INPUT_TEMPLATE></a>\
 				</td>\
 			</tr>\
 			</table>\
-			<p>For simplicity, the Input Template is a "Dummy" Virtual HTTP Input, but does not need to fetch an url. The table below shows the possible Virtual Inputs if manual configuration is preferred.</p>'));
+			<p><TMPL_VAR DEVICES.VIVO_HINT_TEMPLATES></p>'));
 		
 		detHtmlObj.append($(data.payload.mqttTable));
 	
