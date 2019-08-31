@@ -1720,6 +1720,15 @@ sub getdevicedownloads
  	);
 	
 	# Lock Actions
+
+	# Analog action
+	$VO->VirtualOutCmd(
+		Title => "Analogue Lock Action",
+		CmdOn => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=<v>&nowait=1&token=$bridges->{$intBridgeId}->{token}",
+		Analog => 1
+	);
+
+	# Digital actions
 	my $devlockActions = $lockAction{$devtype};
 	foreach my $actionkey ( sort keys %$devlockActions ) {
 		my $actionname = $devlockActions->{$actionkey};
@@ -1730,6 +1739,8 @@ sub getdevicedownloads
 			CmdOn => "/lockAction?nukiId=$nukiId&deviceType=$devtype&action=$actionkey&nowait=1&token=$bridges->{$intBridgeId}->{token}"
 		);
 	}
+
+	
 	$xml = $VO->output;
 	$payload{vo} = $xml;
 	$payload{voFilename} = "VO_NUKI_$currdev->{name}.xml";
