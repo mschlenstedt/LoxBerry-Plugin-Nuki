@@ -1610,7 +1610,7 @@ sub api_call
 	}
 	
 	my $url = join "", @request;
-	LOGDEB "api_call: Calling request url: $url";
+	LOGDEB mask_token($p{token}, "api_call: Calling request url: $url");
 	my $response = $ua->get($url);
 	
 	if ($response->code eq "401") {
@@ -1841,7 +1841,16 @@ sub getdevicedownloads
 
 }
 
+sub mask_token
+{
+	my ($token, $inputstr) = @_;
+	return $inputstr if (!$token);
+	
+	my $masked_token = substr($token, 0, 1) . '*' x (length($token)-1); 
+	$inputstr =~ s/$token/$masked_token/g;
+	return $inputstr;
 
+}
 
 
 END {
