@@ -132,20 +132,40 @@ if( $q->{ajax} ) {
 	
 	LOGSTART "Ajax call: $q->{ajax}";
 	LOGINF "LoxBerry network address is: $lbaddress";
+	LOGDEB "Request method: " . $ENV{REQUEST_METHOD};
+	
+	
 	
 	## Handle all ajax requests 
 	require JSON;
 	# require Time::HiRes;
 	my %response;
 	ajax_header();
-	
-	# CheckSecPin
+
+	# CheckSecPin (WebUI SecPin Question)
 	if( $q->{ajax} eq "checksecpin" ) {
 		LOGINF "checksecpin: CheckSecurePIN was called.";
 		$response{error} = &checksecpin();
 		print JSON->new->canonical(1)->encode(\%response);
+		exit();
 	}
 
+	# All other requests need to send the SecPIN
+	if($ENV{REQUEST_METHOD}) {
+		LOGINF "Remote request - checking SecurePIN";
+		my $seccheck = LoxBerry::System::check_securepin($q->{secpin});
+		if($seccheck) {
+			LOGERR "SecurePIN error: $seccheck";
+			$response{error} = $seccheck;
+			$response{secpinerror} = 1;
+			$response{message} = "SecurePIN invalid";
+			print JSON->new->canonical(1)->encode(\%response);
+			exit(1);
+		} else {
+			LOGINF "SecurePIN ok";
+		}
+	}
+	
 	# Save MQTT Settings
 	if( $q->{ajax} eq "savemqtt" ) {
 		LOGINF "savemqtt: savemqtt was called.";
@@ -572,12 +592,12 @@ sub searchbridges
 			}
 			$jsonobj->write();
 		} else {
-			LOGINF "searchbridges: Data Failure - Error Code: " . $bridges->{errorCode} . "\n";
+			LOGINF "searchbridges: Data Failure - Error Code: " . $bridges->{errorCode};
 			$errors++;
 		}
 	}
 	else {
-		LOGINF "searchbridges: Get Failure: " . $response->status_line . "\n";
+		LOGINF "searchbridges: Get Failure: " . $response->status_line;
 		$errors++;
 	}
 	return ($errors);
@@ -604,15 +624,15 @@ sub editbridge
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		LOGINF "editbridge: No Bridge ID given.\n";
+		LOGINF "editbridge: No Bridge ID given.";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		LOGINF "editbridge: Editing Bridge data for $bridgeid.\n";
+		LOGINF "editbridge: Editing Bridge data for $bridgeid.";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
-			LOGINF "editbridge: Found Bridge: Saving new data.\n";
+			LOGINF "editbridge: Found Bridge: Saving new data.";
 			$cfg->{$bridgeid}->{ip} = $q->{bridgeip};
 			$cfg->{$bridgeid}->{port} = $q->{bridgeport};
 			$cfg->{$bridgeid}->{token} = $q->{bridgetoken};
@@ -629,7 +649,7 @@ sub editbridge
 				$response{error} = 1;
 			}
 		} else {
-			LOGINF "editbridge: Bridge does not exist.\n";
+			LOGINF "editbridge: Bridge does not exist.";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -646,16 +666,16 @@ sub addbridge
 		$q->{bridgeid} = "9" . int(rand(999999999));
 	}
 	
-	LOGINF "addbridge: Add new Bridge.\n";
+	LOGINF "addbridge: Add new Bridge.";
 	# if (!$q->{bridgeid}) {
-		# LOGINF "addbridge: No BridgeID given.\n";
+		# LOGINF "addbridge: No BridgeID given.";
 		# $response{error} = 1;
 		# $response{message} = "No BridgeID given.";
 	# } else {
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$q->{bridgeid}}) {
-			LOGINF "addbridge: Bridge already exists.\n";
+			LOGINF "addbridge: Bridge already exists.";
 			$response{error} = 1;
 			$response{message} = "Bridge already exists.";
 		} else {
@@ -752,22 +772,22 @@ sub getbridgeconfig
 	my $bridgeid = $_[0];
 	my %response;
 	if (!$bridgeid) {
-		LOGINF "getbridgeconfig: No Bridge ID given.\n";
+		LOGINF "getbridgeconfig: No Bridge ID given.";
 		$response{error} = 1;
 		$response{message} = "No Bridge ID given.";
 	} else {
-		LOGINF "getbridgeconfig: Reading config for Bridge $bridgeid.\n";
+		LOGINF "getbridgeconfig: Reading config for Bridge $bridgeid.";
 		my $jsonobj = LoxBerry::JSON->new();
 		my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 		if ($cfg->{$bridgeid}) {
-			LOGINF "getbridgeconfig: Found Bridge: Reading data.\n";
+			LOGINF "getbridgeconfig: Found Bridge: Reading data.";
 			$response{ip} = $cfg->{$bridgeid}->{ip};
 			$response{port} = $cfg->{$bridgeid}->{port};
 			$response{token} = $cfg->{$bridgeid}->{token};
 			$response{error} = 0;
 			$response{message} = "Bridge data read successfully.";
 		} else {
-			LOGINF "getbridgeconfig: Bridge does not exist.\n";
+			LOGINF "getbridgeconfig: Bridge does not exist.";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
 		}
@@ -1209,7 +1229,7 @@ sub callback_fuzzycheck
 	foreach my $callback ( @{$callbacks->{callbacks}} ) {
 		LOGINF "callback_fuzzycheck: Checking for duplicates $callback->{url}";
 		next unless $checkduplicates{$callback->{url}}++;
-		LOGINF "callback_fuzzycheck: URL $callback->{url} is a duplicate\n";
+		LOGINF "callback_fuzzycheck: URL $callback->{url} is a duplicate";
 		callback_remove($bridgeobj, $callback->{id});
 		$itemsremoved++;
 		last;
@@ -1309,7 +1329,7 @@ sub callback_uninstall
 		foreach my $callback ( @{$callbacks->{callbacks}} ) {
 			LOGINF "callback_uninstall: Checking for duplicates $callback->{url}";
 			next unless $checkduplicates{$callback->{url}}++;
-			LOGINF "callback_uninstall: URL $callback->{url} is a duplicate\n";
+			LOGINF "callback_uninstall: URL $callback->{url} is a duplicate";
 			callback_remove($bridgeobj, $callback->{id});
 			$itemsremoved++;
 			last;

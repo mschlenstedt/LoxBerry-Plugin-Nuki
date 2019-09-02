@@ -368,6 +368,9 @@
 var formbridges = '<TMPL_VAR FORM_BRIDGES>';
 var formdevices = '<TMPL_VAR FORM_DEVICES>';
 var formmqtt = '<TMPL_VAR FORM_MQTT>';
+var formlog = '<TMPL_VAR FORM_LOG>';
+
+var secpin = null;
 
 const BRIDGETYPE = JSON.parse('<TMPL_VAR BRIDGETYPE>');
 const DEVICETYPE = JSON.parse('<TMPL_VAR DEVICETYPE>');
@@ -378,18 +381,30 @@ var storedBridges;
 var storedDevices;
 
 $(function() {
+	
+	if(secpin == null) {
+		console.log("Getting SecurePIN from session storage");
+		secpin = sessionStorage.getItem("securePIN");
+	}
+	if(secpin == null) {
+		console.log("SecurePIN is empty in session storage");
+		securePINwrong();
+	}
+
+	getconfig();
+	
+	if (formdevices && secpin) {
+			console.log("Form devices - calling search");
+			$("#main").css( 'visibility', 'visible' );
+			$('#btnsearchdevices').trigger("click");
+	}
+	
 	// Check SecurePIN by ajax and load form data
 	$("#check_securepin").click(function(){
 		console.log("Check securepin called");
 		checkSecurePIN();
 	});
-	// Set SecurePIN from session storage
-	$('#securepin').val(sessionStorage.getItem("securePIN"));
-	if( $('#securepin').val() ) {
-		$('#check_securepin').trigger("click");
-	} else {
-		$("#securepin_block").fadeIn();
-	}
+
 	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
 		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
 	// </TMPL_IF>
@@ -408,8 +423,6 @@ $(function() {
 	});
 	// The btnbrideedit event handler is in getConfig (as it is generated dynamically
 	
-
-
 });
 
 // Search for Bridges
@@ -418,7 +431,7 @@ $('#btnsearchbridges').click( function(e) {
 	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR BRIDGES.HINT_SEARCH_WAIT>");
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'searchbridges' }
+			data: { ajax: 'searchbridges', secpin: secpin }
 		} )
 	.fail(function( data ) {
 		console.log( "searchbridges Fail", data );
@@ -426,6 +439,10 @@ $('#btnsearchbridges').click( function(e) {
 	})
 	.done(function( data ) {
 		console.log( "searchbridges Success: ", data );
+		if(data.secpinerror) {
+				securePINwrong();
+				return;
+			}
 		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_SEARCH_DONE>");
 		getconfig();
 	})
@@ -445,12 +462,16 @@ function askDeleteBridge( data ) {
 function deleteBridge( data ) {
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'deletebridge', bridgeid: data }
+			data: { ajax: 'deletebridge', bridgeid: data, secpin: secpin }
 		} )
 	.fail(function( data ) {
 		console.log( "deletebridge Fail", data );
 	})
 	.done(function( data ) {
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		console.log( "deletebridge Success: ", data );
 		getconfig();
 	})
@@ -466,13 +487,17 @@ function askEditBridge( data ) {
 	$("#btneditbridge").attr("href", 'javascript:editBridge(' + data + ');');
 	$.ajax( { 
 		type: 'POST',
-		data: { ajax: 'getbridgeconfig', bridgeid: data, secpin: $('#securepin').val() }
+		data: { ajax: 'getbridgeconfig', bridgeid: data, secpin: secpin }
 	} )
 	.fail(function( data ) {
 		console.log( "getbridgeconfig Fail", data );
 	})
 	.done(function( data ) {
 		console.log( "getbridgeconfig Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		$('#editbridgeip').val( data.ip);
 		$('#editbridgeport').val( data.port);
 		$('#editbridgetoken').val( data.token);
@@ -494,6 +519,7 @@ function editBridge( data ) {
 					bridgeip: $("#editbridgeip").val(),
 					bridgeport: $("#editbridgeport").val(),
 					bridgetoken: $("#editbridgetoken").val(),
+					secpin: secpin
 			}
 		} )
 	.fail(function( data ) {
@@ -502,6 +528,10 @@ function editBridge( data ) {
 	})
 	.done(function( data ) {
 		console.log( "editbridge Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		$("#edit_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_EDIT_OK>");
 		getconfig();
 		$("#popupEdit").popup("close");
@@ -521,7 +551,8 @@ function activateBridge( data ) {
 			type: 'POST',
 			timeout: 31000,
 			data: { ajax: 'activatebridge', 
-					bridgeid: data
+					bridgeid: data,
+					secpin: secpin
 			}
 		} )
 	.fail(function( data ) {
@@ -529,6 +560,10 @@ function activateBridge( data ) {
 		$("#activate_hint").attr("style", "color:red").html("<TMPL_VAR BRIDGES.HINT_ACTIVATE_ERROR>: "+data.statusText)+" "+data.message;
 	})
 	.done(function( data ) {
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		console.log( "activatebridge Success: ", data );
 		$("#activate_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_ACTIVATE_OK>");
 		getconfig();
@@ -549,6 +584,7 @@ function addBridge( data ) {
 					bridgeip: $("#addbridgeip").val(),
 					bridgeport: $("#addbridgeport").val(),
 					bridgetoken: $("#addbridgetoken").val(),
+					secpin: secpin
 			}
 		} )
 	.fail(function( data ) {
@@ -557,6 +593,10 @@ function addBridge( data ) {
 	})
 	.done(function( data ) {
 		console.log( "addbridge Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		$("#add_hint").attr("style", "color:green").html("<TMPL_VAR BRIDGES.HINT_EDIT_OK>");
 		getconfig();
 		$("#popupAdd").popup("close");
@@ -585,7 +625,7 @@ function bridgeDetails ( intBridgeId ) {
 	// Request for bridge details
 	$.ajax({ 
 		type: 'POST',
-		data: { ajax: 'checktoken', bridgeid: intBridgeId }
+		data: { ajax: 'checktoken', bridgeid: intBridgeId, secpin: secpin }
 	})
 	.fail(function( data ) {
 		detHtmlObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
@@ -593,6 +633,10 @@ function bridgeDetails ( intBridgeId ) {
 	})
 	.done(function( data ) {
 		console.log( "checktoken Success", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		detHtmlObj.attr("style", "color:black;")
 		if ( data.auth ) {
 			currBridgeObj = storedBridges[intBridgeId];
@@ -645,7 +689,7 @@ function bridgeDetails ( intBridgeId ) {
 	// Request for callbacks 
 	$.ajax({ 
 		type: 'POST',
-		data: { ajax: 'ajax_callback_list', bridgeid: intBridgeId }
+		data: { ajax: 'ajax_callback_list', bridgeid: intBridgeId, secpin: secpin }
 	})
 	.fail(function( data ) {
 		detCallbackObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
@@ -653,6 +697,10 @@ function bridgeDetails ( intBridgeId ) {
 	})
 	.done(function( data ) {
 		console.log( "ajax_callback_list Success", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		detCallbackObj.attr("style", "color:black;")
 		if ( data.callbacks ) {
 			currBridgeObj = storedBridges[intBridgeId];
@@ -692,7 +740,7 @@ function bridgeResetCallbacks ( intBridgeId ) {
 	$("#reset_callbacks").addClass('ui-disabled');
 	$.ajax({ 
 		type: 'POST',
-		data: { ajax: 'bridge_reset_callbacks', bridgeid: intBridgeId, secpin: $('#securepin').val() }
+		data: { ajax: 'bridge_reset_callbacks', bridgeid: intBridgeId, secpin: secpin }
 	})
 	.fail(function( data ) {
 		detCallbackObj.attr("style", "color:red;").html("<TMPL_VAR COMMON.ERROR_COULD_NOT_GET_DATA>");
@@ -700,6 +748,10 @@ function bridgeResetCallbacks ( intBridgeId ) {
 	})
 	.done(function( data ) {
 		// Recall bridgeDetails popup
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		bridgeDetails ( intBridgeId );
 	
 	
@@ -721,7 +773,7 @@ function deviceDownloads ( intBridgeId, nukiId ) {
 		type: 'POST',
 		data: { 
 			ajax: 'getdevicedownloads', 
-			secpin: $('#securepin').val(), 
+			secpin: secpin, 
 			bridgeId: intBridgeId,
 			nukiId: nukiId  }
 	})
@@ -731,6 +783,10 @@ function deviceDownloads ( intBridgeId, nukiId ) {
 	})
 	.done(function( data ) {
 		console.log( "deviceDownloads Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		detHtmlObj.empty();
 		detHtmlObj.attr("style", "color:black;");
 		detHtmlObj.append($('\
@@ -767,7 +823,7 @@ $('#btnsearchdevices').click( function(e) {
 	$("#search_hint").attr("style", "color:blue;").html("<TMPL_VAR DEVICES.HINT_SEARCH_WAIT>");
 	$.ajax( { 
 			type: 'POST',
-			data: { ajax: 'searchdevices' }
+			data: { ajax: 'searchdevices', secpin: secpin }
 		} )
 	.fail(function( data ) {
 		console.log( "searchdevices Fail", data );
@@ -775,6 +831,10 @@ $('#btnsearchdevices').click( function(e) {
 	})
 	.done(function( data ) {
 		console.log( "searchdevices Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		$("#search_hint").attr("style", "color:green").html("<TMPL_VAR DEVICES.HINT_SEARCH_DONE>");
 		getconfig();
 	})
@@ -797,6 +857,7 @@ function saveMQTT() {
 				port: $('#BrokerPort').val(),
 				username: $('#BrokerUsername').val(),
 				password: $('#BrokerPassword').val(),
+				secpin: secpin
 			}
 		} )
 	.fail(function( data ) {
@@ -805,6 +866,10 @@ function saveMQTT() {
 	})
 	.done(function( data ) {
 		console.log( "savemqtt Success: ", data );
+		if(data.secpinerror) {
+			securePINwrong();
+			return;
+		}
 		$("#mqtt_hint").attr("style", "color:green").html("<TMPL_VAR MQTT.HINT_SAVE_OK>");
 		getconfig();
 	})
@@ -823,29 +888,31 @@ function checkSecurePIN() {
 			data: { ajax: 'checksecpin', secpin: $('#securepin').val() }
 	})
 	.fail(function( data ) {
-		console.log( "checksecpin Fail", data );
-		$("#securepin_block").fadeIn();
-		$("#check_hint").attr("style", "color:red").html("<TMPL_VAR SECUREPIN.ERROR_GENERIC>: "+data.statusText);
+		securePINwrong();
+		return;
 	})
 	.done(function( data ) {
-		console.log( "checksecpin Success", data );
 		if( data.error && data.error != 0 ) {
 			console.log( "Error detected", data.error );
 			data.message = '<TMPL_VAR SECUREPIN.ERROR_WRONG>';
 			console.log( "Message:", data.message );
 			$("#check_hint").attr("style", "color:red").html(data.message);
+			secpin = null;
 			return;
 		}
 		// Save PIN to session storage
 		sessionStorage.setItem("securePIN", $('#securepin').val());
+		secpin = $('#securepin').val();
 		$("#securepin_block").fadeOut();
 		// Get config data
 		getconfig();
-		// $("#main_form").fadeIn();
-		$("#main").css( 'visibility', 'visible' );
-		if (formdevices) {
+		if (formdevices && secpin) {
+			console.log("Form devices - calling search");
+			$("#main").css( 'visibility', 'visible' );
 			$('#btnsearchdevices').trigger("click");
-		}
+	}
+		// $("#main_form").fadeIn();
+		
 	})
 	.always(function( data ) {
 		console.log( "checksecpin Finished" );
@@ -853,35 +920,57 @@ function checkSecurePIN() {
 	});
 }
 
+function securePINwrong() {
+	console.log( "checksecpin Fail");
+	$("#check_hint").attr("style", "color:red").html("<TMPL_VAR SECUREPIN.ERROR_GENERIC>");
+	$("#securepin_block").fadeIn();
+	$("#main").css( 'visibility', 'hidden' );
+	
+	return;
+}
+
 // Get Config
 function getconfig() {
 	// Get Config
-	console.log( "The SecurePIN is: ", $('#securepin').val() );
-	if ( sessionStorage.getItem("securePIN") ) {
-		if ( formbridges ) {
-			console.log( "Get Config for Bridges form" );
-			var form = 'bridges';
-		}
-		if ( formdevices ) {
-			console.log( "Get Config for Devices form" );
-			var form = 'devices';
-		}
-		if ( formmqtt ) {
-			console.log( "Get Config for MQTT form" );
-			var form = 'mqtt';
-		}
+	
 		
+	if ( formbridges ) {
+		console.log( "Get Config for Bridges form" );
+		var form = 'bridges';
+	}
+	if ( formdevices ) {
+		console.log( "Get Config for Devices form" );
+		var form = 'devices';
+	}
+	if ( formmqtt ) {
+		console.log( "Get Config for MQTT form" );
+		var form = 'mqtt';
+	}
+	if ( formlog ) {
+		console.log( "Get Config for LOG form" );
+		$("#main").css( 'visibility', 'visible' );
+		$("#securepin_block").css( 'display', 'none' );
+		// No need to fetch config
+		return;
+	}
+		
+	if ( secpin != null ) {
+		$("#main_form").fadeIn();
 		// Ajax request
 		$.ajax({ 
 			type: 'POST',
-			data: { ajax: 'getconfig', config: form, secpin: $('#securepin').val() }
+			data: { ajax: 'getconfig', config: form, secpin: secpin }
 		})
 		.fail(function( data ) {
 			console.log( "getconfig Fail", data );
 		})
 		.done(function( data ) {
 			console.log( "getconfig Success", data );
-			
+			if(data.secpinerror) {
+				securePINwrong();
+				return;
+			}
+			$("#main").css( 'visibility', 'visible' );
 			if ( formbridges ) {
 				console.log( "Parse Items for Bridges form" );
 				$('#data-list').empty();
@@ -921,7 +1010,7 @@ function getconfig() {
 					if ( item.token ) {
 						$.ajax({ 
 							type: 'POST',
-							data: { ajax: 'checktoken', bridgeid: intBridgeId }
+							data: { ajax: 'checktoken', bridgeid: intBridgeId, secpin: secpin }
 						})
 						.fail(function( data ) {
 							console.log( "checktoken Fail", data );
@@ -938,13 +1027,17 @@ function getconfig() {
 					}
 					$.ajax({ 
 						type: 'POST',
-						data: { ajax: 'checkonline', url: item.ip + ':' + item.port }
+						data: { ajax: 'checkonline', url: item.ip + ':' + item.port, secpin: secpin }
 					})
 					.fail(function( data ) {
 						console.log( "checkonline Fail", data );
 					})
 					.done(function( data ) {
 						console.log( "checkonline Success", data );
+						if(data.secpinerror) {
+							securePINwrong();
+							return;
+						}
 						if ( data.online ) {
 							$("#status" + intBridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");	
 						} else {
@@ -1125,6 +1218,14 @@ function b64EncodeUnicode(str) {
     }));
 }
 
-
+function AddKeyPress(event, submitobj ) { 
+	// look for window.event in case event isn't passed in
+	event = event || window.event;
+	if (event.keyCode == 13) {
+		submitobj.click();
+		return false;
+	}
+	return true;
+}
 
 </script>
