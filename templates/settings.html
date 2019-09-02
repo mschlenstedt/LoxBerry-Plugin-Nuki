@@ -1128,7 +1128,7 @@ function getconfig() {
 					$('<td />', { text: item.bridgeId }).appendTo(row);
 					$('<td />', { text: ( item.paired == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
 					// Formular out_min+(rssi-in_min)*(out_max-out_min)/(in_max-in_min)
-					rssicol = item.rssi ? numberToColorHsl( 100+(item.rssi+40)*(0-100)/(-100+40) ) : "White";
+					rssicol = item.rssi ? numberToColorHsl( 100+(item.rssi+40)*(0-100)/(-100+40) ) : "transparent";
 					$('<td />', { html: '<span style="background-color:'+rssicol+'">&nbsp;'+item.rssi+'&nbsp;</span>' }).appendTo(row);
 					$('<td />', { html: '\
 					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
