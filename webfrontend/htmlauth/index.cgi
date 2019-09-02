@@ -1647,21 +1647,29 @@ sub api_call
 sub api_call_block
 {
 
+	LOGDEB "P$$ api_call_block: Called";
 	CORE::open(my $fh, '>', $nuki_locking_file);
+	# LOGDEB "P$$ api_call_block: Opened";
+	
 	my $starttime = Time::HiRes::gettimeofday();
+	my $nextlogmsg;
 	my $lockstate;
-	while ( !$lockstate or Time::HiRes::gettimeofday() > ($starttime+20) ) {
-		$lockstate = flock($fh, 2);
+	while ( !$lockstate and Time::HiRes::gettimeofday() < ($starttime+20)) {
+		$lockstate = flock( $fh, (2+4) );
 		if (!$lockstate) {
-			LOGINF "api_call_block: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds...";
 			Time::HiRes::sleep(0.05);
+		}
+		if (!$lockstate and Time::HiRes::gettimeofday() > $nextlogmsg) {
+			LOGINF "P$$ api_call_block: Waiting for file lock since " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds... (Starttime $starttime Time " . Time::HiRes::gettimeofday(). ")" ;
+			$nextlogmsg = Time::HiRes::gettimeofday()+3;
 		}
 	}
 	if ( !$lockstate ) {
-		LOGERR "api_call_block: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
+		LOGERR "P$$ api_call_block: Could not get exclusive lock after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
+		CORE::close($fh);
 		return undef;
 	} else {
-		LOGOK "api_call_block: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
+		LOGOK "P$$ api_call_block: Exclusive lock set after " . sprintf("%.2f", Time::HiRes::gettimeofday()-$starttime) . " seconds";
 	}
 	Time::HiRes::sleep(0.05);
 	return $fh;
@@ -1673,8 +1681,8 @@ sub api_call_unblock
 	my $fh = shift;
 
 	my $unlock = CORE::close($fh);
-	LOGOK "api_call_unblock: call_api closed/unlocked" if ($unlock);
-	LOGERR "api_call_unblock: Could not close/unlock" if (!$unlock);
+	LOGOK "P$$ api_call_unblock: call_api closed/unlocked" if ($unlock);
+	LOGERR "P$$ api_call_unblock: Could not close/unlock" if (!$unlock);
 	
 }
 
