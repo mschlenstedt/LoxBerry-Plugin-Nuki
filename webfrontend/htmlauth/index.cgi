@@ -890,6 +890,8 @@ sub lockState
 		LOGERR $message;
 	}
 	
+	my $deviceType = defined $devices->{nukiId}->{deviceType} ? $devices->{nukiId}->{deviceType} : "0";
+	
 	my $response;
 	if( !$errors ) {
 		$response = api_call(
@@ -897,7 +899,7 @@ sub lockState
 			port	=> $bridgeObj->{port},
 			apiurl	=> '/lockState',
 			token	=> $bridgeObj->{token},
-			params	=> "nukiId=" . $nukiId,
+			params	=> "nukiId=" . $nukiId . "&deviceType=" . $deviceType
 		);
 		if($response->code eq "401") {
 			$errors++;
