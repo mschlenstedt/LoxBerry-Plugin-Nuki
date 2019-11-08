@@ -1705,6 +1705,8 @@ sub api_call_unblock
 
 sub savemqtt
 {
+	# Save mqtt.json
+	
 	my $errors;
 	my $jsonobj = LoxBerry::JSON->new();
 	my $cfg = $jsonobj->open(filename => $CFGFILEMQTT);
@@ -1715,6 +1717,18 @@ sub savemqtt
 	$cfg->{username} = $q->{username};
 	$cfg->{password} = $q->{password};
 	$jsonobj->write();
+	
+	# Save mqtt_subscriptions.cfg for MQTT Gateway
+	my $subscr_file = $lbpconfigdir."/mqtt_subscriptions.cfg";
+	eval {
+		open(my $fh, '>', $subscr_file);
+		print $fh $q->{topic} . "/#\n";
+		close $fh;
+	};
+	if ($@) {
+		LOGERR "savemqtt: Could not write $subscr_file: $@";
+	}
+	
 	return ($errors);
 }
 
