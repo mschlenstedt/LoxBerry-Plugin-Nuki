@@ -824,6 +824,7 @@ sub checktoken
 			
 			if ($apiresponse->code eq "200") {
 				$response{auth} = 1;
+				$response{online} = 1;
 				my $info_data;
 				eval {
 					$info_data = decode_json( $apiresponse->decoded_content );
@@ -836,10 +837,15 @@ sub checktoken
 					LOGERR "P$$ checktoken: /info response processing failed: $@";
 				}
 				
+			} elsif ( $apiresponse->code eq "401" ) {
+				$response{auth} = 0;
+				$response{online} = 1;
 			} else {
 				$response{auth} = 0;
+				$response{online} = 0;
 			}
-		} else {
+			
+		} else { 
 			LOGINF "P$$ checktoken: Bridge does not exist.";
 			$response{error} = 1;
 			$response{message} = "Bridge does not exist.";
@@ -1578,7 +1584,7 @@ sub api_call
 	my %p = @_;
 	my $errors = 0;
 
-	LOGINF "P$$ api_call $p{apiurl}: Called";
+	LOGINF "P$$ api_call $p{apiurl} for $p{ip}: Called";
 	
 	# Default values
 	$p{timeout} = defined $p{timeout} ? $p{timeout} : 10;
@@ -1597,7 +1603,7 @@ sub api_call
 		$errors++;
 	}
 	if(!$p{token}) {
-		LOGINF P$$ "api_call: Unsecured request without token";
+		LOGINF "P$$ api_call: Unsecured request without token";
 	}
 
 	if($errors != 0) {
@@ -1606,7 +1612,7 @@ sub api_call
 	}
 	
 	# Check for running api call
-	my $fh = api_call_block();
+	my $fh = api_call_block($p{ip});
 	
 	require LWP::UserAgent;
 	
@@ -1634,7 +1640,7 @@ sub api_call
 	my $url = join "", @request;
 	LOGDEB mask_token($p{token}, "P$$ api_call: Calling request url: $url");
 	my $response = $ua->get($url);
-	
+	LOGDEB "P$$ api_call: Response code " . $response->code;
 	if ($response->code eq "401") {
 		LOGERR "P$$ api_call: HTTP 401 - The request token is invalid";
 		LOGERR "P$$ api_call: Response: " . $response->decoded_content if ($response->decoded_content);
@@ -1650,7 +1656,14 @@ sub api_call_block
 {
 
 	LOGDEB "P$$ api_call_block: Called";
-	CORE::open(my $fh, '>', $nuki_locking_file);
+	my ($ip) = @_;
+	my $nuki_locking_file_specific;
+	if($ip) {
+		$nuki_locking_file_specific = $nuki_locking_file."_".$ip;
+	} else {
+		$nuki_locking_file_specific = $nuki_locking_file;
+	}
+	CORE::open(my $fh, '>', $nuki_locking_file_specific);
 	# LOGDEB "P$$ api_call_block: Opened";
 	
 	my $starttime = Time::HiRes::gettimeofday();

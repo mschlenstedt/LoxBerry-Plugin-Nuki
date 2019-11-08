@@ -1004,10 +1004,10 @@ function getconfig() {
 					//$('<td class="bridgedetailslink" data-bridgeid="'+item.bridgeId+'">'+item.bridgeId+'</td>').appendTo(row);
 					$('<td />', { text: item.ip }).appendTo(row);
 					$('<td />', { text: item.port }).appendTo(row);
-					$('<td />', { html: '<span id="token' + intBridgeId + '">' + ( item.token ? item.token : "") + '</span>' }).appendTo(row);
+					$('<td />', { html: '<span id="token' + intBridgeId + '">' + ( item.token ? item.token : "<TMPL_VAR COMMON.MISSING>") + '</span>' }).appendTo(row);
 					$('<td />', { html: '<span id="status' + intBridgeId + '"></span>' }).appendTo(row);
 					
-					if ( item.token ) {
+//					if ( item.token ) {
 						$.ajax({ 
 							type: 'POST',
 							data: { ajax: 'checktoken', bridgeid: intBridgeId, secpin: secpin }
@@ -1023,8 +1023,16 @@ function getconfig() {
 							} else {
 								$("#token" + intBridgeId).attr('style', 'color:red');
 							}
+							if ( data.online ) {
+								$("#status" + intBridgeId).attr('style', 'color:green').html ("<TMPL_VAR BRIDGES.LABEL_ONLINE>");	
+							} else {
+								$("#status" + intBridgeId).attr('style', 'color:red').html ("<TMPL_VAR BRIDGES.LABEL_OFFLINE>");	
+							}
 						})
-					}
+//					}
+
+
+/*
 					$.ajax({ 
 						type: 'POST',
 						data: { ajax: 'checkonline', url: item.ip + ':' + item.port, secpin: secpin }
@@ -1047,6 +1055,7 @@ function getconfig() {
 					.always(function( data ) {
 						console.log( "checkonline Finished" );
 					});
+*/
 					$('<td />', { html: '\
 					<a href="javascript:activateBridge(' + intBridgeId + ')" id="btnbridgeactivate'+intBridgeId+'" name="btnbridgeactivate'+intBridgeId+'" \
 					title="<TMPL_VAR BRIDGES.BUTTON_ACTIVATE> ' + intBridgeId + '"> \
