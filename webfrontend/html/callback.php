@@ -1,8 +1,20 @@
 <?php
 
 	require_once "loxberry_system.php";
+	require_once "loxberry_log.php";
 	require_once "./phpMQTT/phpMQTT.php";
 	
+	$params = [
+		"name" => "Callback",
+		"filename" => LBPLOGDIR."/callback.log",
+		"append" => 1,
+		"stdout" => 1,
+		"addtime" => 1,
+		"loglevel" => 6
+	];
+	$log = LBLog::newLog ($params);
+	LOGSTART("Callback log");
+
 	$SentByType = array (
 		1 => "callback",
 		2 => "cron",
@@ -11,6 +23,8 @@
 	);
 	
 	$mqttcfgfile = LBPCONFIGDIR."/mqtt.json";
+	
+	tolog("LOGINF", "Callback processing"); 
 	
 	if( $argc > 1 ) {
 		$longopts = array(
@@ -88,8 +102,9 @@
 			$nukidata->nukiId."/sentAtTimeLox" => epoch2lox(),
 			$nukidata->nukiId."/sentAtTimeISO" => currtime(),
 			] );
+			tolog("LOGOK", "Published: " . $nukidata->nukiId . " sentByName " . $SentByType[$options["sentbytype"]] . " Data\n" . $options["json"]);
 	} else {
-		echo "ERROR: No valid json data\n";
+		tolog("LOGCRIT", "No valid json data");
 	}
 	
 
@@ -123,21 +138,19 @@ function mqtt_publish ( $keysandvalues ) {
 ######################################################
 function tolog ( $logfunction, $message ) {
 
-	require_once "loxberry_log.php";
 	// Creates a log object, automatically assigned to your plugin, with the group name "PHPLog"
-	$params = [
-		"name" => "Callback",
-		"filename" => LBPLOGDIR."/callback.log",
-		"append" => 1,
-		"stdout" => 1
-	];
-	$log = LBLog::newLog ($params);
-	LOGSTART("Callback log");
 	$logfunction($message);
-	LOGEND();
 }
 
 
+// Shutdown handler
+
+register_shutdown_function('shutdown');
+
+function shutdown() 
+{
+	LOGEND();
+}
 
 
 ?>
