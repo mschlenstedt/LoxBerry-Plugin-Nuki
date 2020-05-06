@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-# Copyright 2019 Michael Schlenstedt, michael@loxberry.de
-#                Christian Fenzl, christian@loxberry.de
+# Copyright 2019-2020 Michael Schlenstedt, michael@loxberry.de
+#                     Christian Fenzl, christian@loxberry.de
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -348,29 +348,37 @@ if( $q->{ajax} ) {
 	
 	foreach my $devicekey ( keys %$devices ) {
 		my $device=$devices->{$devicekey};
-		LOGINF "P$$ Checking device $device->{name} (nukiId $device->{nukiId} on bridge $device->{bridgeId})";
-		my ($error, $message, $response) = lockState($device->{bridgeId}, $device->{nukiId});
+		my ($error, $message, $response);
 		my $jsondata;
-		if($response->decoded_content) {
-			eval {
-				$jsondata = decode_json($response->decoded_content);
-			};
-		}
-		if($error or $jsondata->{success} ne "1") {
-			if( $jsondata->{success} ne "1" ) {
-				$message = "Bridge responded ok, but returned success=FALSE querying the device.";
-				LOGERR "P$$ " . $message;
+		
+		foreach my $trycount (1..3) {
+			LOGINF "P$$ Checking device $device->{name} (nukiId $device->{nukiId} on bridge $device->{bridgeId}) TRY $trycount";
+			($error, $message, $response) = lockState($device->{bridgeId}, $device->{nukiId});
+			if($response->decoded_content) {
+				eval {
+					$jsondata = decode_json($response->decoded_content);
+				};
 			}
-			LOGDEB "P$$ Nuki response: HTTP " . $response->code . " Content: " . $response->decoded_content;
-			# Generate an own json response
-			$jsondata=undef;
-			$jsondata->{nukiId} = $device->{nukiId};
-			$jsondata->{state} = -1;
-			$jsondata->{stateName} = $message;
+			if($error or $jsondata->{success} ne "1") {
+				if( $jsondata->{success} ne "1" ) {
+					$message = "Bridge responded ok, but returned success=FALSE querying the device.";
+					LOGERR "P$$ " . $message;
+				}
+				LOGDEB "P$$ Nuki response: HTTP " . $response->code . " Content: " . $response->decoded_content;
+				# Generate an own json response
+				$jsondata=undef;
+				$jsondata->{nukiId} = $device->{nukiId};
+				$jsondata->{state} = -1;
+				$jsondata->{stateName} = $message;
 			
-		} else {
-			delete $jsondata->{success};
-			$jsondata->{nukiId} = $device->{nukiId};
+			} else {
+				delete $jsondata->{success};
+				$jsondata->{nukiId} = $device->{nukiId};
+				# Everything seems to be ok - we leave the retry loop
+				last;
+			}
+			LOGWARN "P$$ TRY 1 Failure response";
+			sleep(1);
 		}
 		
 		# Call PHP MQTT callback script to send data
