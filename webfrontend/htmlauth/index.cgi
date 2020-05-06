@@ -904,7 +904,7 @@ sub lockState
 		LOGERR "P$$ ".$message;
 	}
 	
-	my $deviceType = defined $devices->{nukiId}->{deviceType} ? $devices->{nukiId}->{deviceType} : "0";
+	my $deviceType = defined $devices->{$nukiId}->{deviceType} ? $devices->{$nukiId}->{deviceType} : "0";
 	
 	my $response;
 	if( !$errors ) {
