@@ -1,0 +1,198 @@
+#!/usr/bin/php
+<?php
+
+	// Shutdown handler
+	register_shutdown_function('shutdown');
+
+	require_once "loxberry_system.php";
+	require_once LBHOMEDIR."/libs/phplib/phpMQTT/phpMQTT.php";
+	
+	$mqttcfgfile = LBPCONFIGDIR."/mqtt.json";
+	$devicescfgfile = LBPCONFIGDIR."/devices.json";
+	
+	$response = array();
+	$response['desc'] = 'Checks bridges and results for timeouts';
+	if( (empty($argv[1])) or ($argv[1]!="check") ) {
+		exit;
+	}
+	
+	// Read MQTT config from plugin config
+	$mqttcfg = json_decode(file_get_contents($mqttcfgfile));
+	if( empty($mqttcfg) ) {
+		setstatus(3, "Could not read MQTT config from plugins configuration file.");
+		exit;
+	}
+	
+	// Topic
+	$topic = !empty($mqttcfg->topic) ? $mqttcfg->topic : "nuki";
+	if( substr($topic, -1) != "/" ) {
+		$topic = $topic."/";
+	}
+	setstatus(6, "Topic is $topic.");
+	define( "TOPIC", $topic);
+
+	// Read devices from devices.json
+	$devicescfg = json_decode(file_get_contents($devicescfgfile));
+	if( empty($devicescfg) ) {
+		setstatus(3, "Could not read Nuki devices file.");
+		exit;
+	}
+	$nukiids = array();
+	foreach($devicescfg as $device) {
+		array_push($nukiids, $device->nukiId);
+	}
+	
+	// Broker
+	if( is_enabled($mqttcfg->usemqttgateway) ) {
+		// Use MQTT Gateway credentials
+		// Check if MQTT plugin in installed
+		$mqttplugindata = LBSystem::plugindata("mqttgateway");
+		if( !empty($mqttplugindata) ) {
+			$mqttconf = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/mqtt.json" ));
+			$mqttcred = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/cred.json" ));
+			$brokeraddress = $mqttconf->Main->brokeraddress;
+			$brokeruser = $mqttcred->Credentials->brokeruser;
+			$brokerpass = $mqttcred->Credentials->brokerpass;
+		}
+	} else {
+		// Use MQTT config from Nuki plugin
+		$brokeraddress = $mqttcfg->server.":".$mqttcfg->port;
+		$brokeruser = $mqttcfg->username;
+		$brokerpass = $mqttcfg->password;
+	}
+	
+	// Broker validation
+	@list($host, $port) = explode(":", $brokeraddress, 2);
+	$port = $port ? $port : 1883;
+	
+	// Subscribe to the broker and read all Nuki devices
+	
+	// Connect to the broker
+	$broker = explode(':', $brokeraddress, 2);
+	$broker[1] = !empty($broker[1]) ? $broker[1] : 1883;
+	$client_id = uniqid(gethostname()."_nuki");
+	$mqtt = new Bluerhinos\phpMQTT($broker[0],  $broker[1], $client_id);
+	$mqttconnect = $mqtt->connect(true, NULL, $brokeruser, $brokerpass);
+	if( !$mqttconnect ) {
+		setstatus(3, "Could not connect to the configured broker.");
+		exit;
+	}
+	
+	// Subscribe all nuki devices
+	// One subscription for the Nuki device json
+	$topics[$topic.'+'] = array('qos' => 0, 'function' => 'processJson');
+	// One subscription for the Nuki device timestamp topic
+	$topics[$topic.'+/sentAtTimeLox'] = array('qos' => 0, 'function' => 'processTime');
+	$mqtt->subscribe($topics, 0);
+	
+	// JSON and time are kept in separate arrays
+	$mqttresp = array();
+	$mqtttime = array();
+
+	$start = time();
+	$allfound = false;
+	while($mqtt->proc()) {
+		// Have we got all mqtt data from all configured Nuki's?
+		if( array_keys( $mqttresp ) == $nukiids and array_keys( $mqtttime ) == $nukiids ) {
+			$allfound = true;
+			break;
+		}
+		
+		// Stop after x seconds waiting for new mqtt data
+		if(time() > $start+3) {
+			break;
+		}
+		sleep(0.1);
+	}
+	$mqtt->close();
+	
+	if( $allfound == false ) {
+		setstatus(3, "Not all devices were found at your broker.");
+	} else {
+		setstatus(5, "All devices found at your broker.");
+	}
+	
+	// Loop all mqtt data from devices
+	foreach ( $mqttresp as $id => $device ) {
+		// print_r($device);
+		
+		// Skip Nuki's we don't know
+		if ( !in_array($device->nukiId, $nukiids) ) {
+			continue;
+		}
+		
+		if ( !isset($mqtttime[$id]) ) {
+			setstatus( 3, "Nuki $device->nukiId COULD NOT GET last update time!" );
+			continue;
+		} elseif( $mqtttime[$id] < time()-3*60*60 ) {
+			setstatus( 3, "Nuki $device->nukiId LAST STATE UPDATE is quite OLD!" );
+			continue;
+		}
+		if( $device->state == -1 ) {
+			setstatus( 3, "Nuki $device->nukiId not responding (state $device->state)." );
+		} elseif ( $device->state == 0 || $device->state >= 250 ) {
+			setstatus( 3, "Nuki $device->nukiId $device->stateName (state $device->state)." );
+		} else {
+			setstatus( 5, "Nuki $device->nukiId $device->stateName (state $device->state)." );
+		}
+	}
+exit;
+	
+
+// Processing json topic of device
+function processJson($intopic, $msg){
+		global $topic;
+		global $mqttresp;
+		global $nukiids;
+		$device = substr( $intopic, strlen($topic) );
+		if( !in_array( $device, $nukiids ) ) {
+			return;
+		}
+		$mqttresp[$device] = json_decode($msg);
+		// echo "Device: $device JsonTopic: {$intopic}\n";
+		// echo "\t$msg\n";
+}	
+
+// Processing time topic of device
+function processTime($intopic, $msg){
+		global $topic;
+		global $mqtttime;
+		global $nukiids;
+		$device = substr( $intopic, strlen($topic) );
+		$device = substr ( $device, 0, -strlen('/sentAtTimeLox') );
+		if( !in_array( $device, $nukiids ) ) {
+			return;
+		}
+		$mqtttime[$device] = lox2epoch($msg);
+		// echo "Device: $device TimeTopic: {$intopic}\n";
+		// echo "\tsentAtTimeLox: $msg Epoch: $mqtttime[$device]\n";
+}	
+
+// Sets status and message
+// Always the highest severity (e.g. ERROR) is kept
+function setstatus($newstatus, $message = "") {
+	global $response;
+	if( empty($response['status']) or $newstatus < $response['status'] ) {
+		$response['status'] = $newstatus;
+	}
+	if(!empty($message)) {
+		$message .= ' ';
+		if(empty($response['result'])) {
+			$response['result'] = $message;
+		} else {
+			$response['result'] .= $message;
+		}
+	}
+}
+
+// Print json data on exit
+function shutdown() 
+{
+	global $response;
+	echo json_encode($response);
+	
+}
+
+
+?>
+
