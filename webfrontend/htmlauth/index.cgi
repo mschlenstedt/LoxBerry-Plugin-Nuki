@@ -1822,6 +1822,7 @@ sub getdevicedownloads
  	);
 	
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_batteryCritical", Comment => "$currdev->{name} Battery Critical");
+	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_doorsensorState", Comment => "$currdev->{name} Doorsensor");
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_mode", Comment => "$currdev->{name} Mode");
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_nukiId", Comment => "$currdev->{name} Nuki ID");
 	$VI->VirtualInHttpCmd( Title => "${topic}_${nukiId}_state", Comment => "$currdev->{name} State");
@@ -1846,14 +1847,19 @@ sub getdevicedownloads
 		
 		$m .= '<tr>'."\n";
 		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_batteryCritical</td>\n";
-		$m .= '<td class="mqtttable_desccol">0...Battery ok 1 ... Battery low</td>'."\n";
+		$m .= '<td class="mqtttable_desccol">0..Battery ok 1..Battery low</td>'."\n";
+		$m .= "</tr>\n";
+		
+		$m .= '<tr>'."\n";
+		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_doorsensorState</td>\n";
+		$m .= '<td class="mqtttable_desccol">0..unavailable 1..deactivated 2..door closed 3..door opened 4..door state unknown 5..calibrating</td>'."\n";
 		$m .= "</tr>\n";
 		
 		$m .= "<tr>\n";
 		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_deviceType</td>\n";
 		$m .= '<td class="mqtttable_desccol">';
 		foreach( sort keys %deviceType ) {
-			$m .= "$_...$deviceType{$_} ";
+			$m .= "$_..$deviceType{$_} ";
 		}
 		$m .= "</td>\n";
 		$m .= "</tr>\n";
@@ -1863,7 +1869,7 @@ sub getdevicedownloads
 		if( $devtype eq "0") {
 			$m .= '<td class="mqtttable_desccol">'."Always '2' after complete setup</td>\n";
 		} elsif ($devtype eq "2") {
-			$m .= '<td class="mqtttable_desccol">'."2...Door mode 3...Continuous mode</td>\n";
+			$m .= '<td class="mqtttable_desccol">'."2..Door mode 3..Continuous mode</td>\n";
 		} else {
 			$m .= "<td>(unknown device type)</td>\n";
 		}
@@ -1878,14 +1884,14 @@ sub getdevicedownloads
 		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_state</td>\n";
 		$m .= '<td class="mqtttable_desccol">';
 		foreach( sort {$a<=>$b} keys %{$lockState{$devtype}} ) {
-			$m .= "$_...$lockState{$devtype}{$_} ";
+			$m .= "$_..$lockState{$devtype}{$_} ";
 		}
 		$m .= "</td>\n";
 		$m .= "</tr>\n";
 
 		$m .= "<tr>\n";
 		$m .= '<td class="mqtttable_vicol">'."${topic}_${nukiId}_sentBy</td>\n";
-		$m .= '<td class="mqtttable_desccol">'."1...callback 2...cron 3...manual</td>\n";
+		$m .= '<td class="mqtttable_desccol">'."1..callback 2..cron 3..manual</td>\n";
 		$m .= "</tr>\n";
 
 		$m .= "<tr>\n";
