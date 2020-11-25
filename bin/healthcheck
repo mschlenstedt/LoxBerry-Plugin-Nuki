@@ -41,6 +41,7 @@
 	foreach($devicescfg as $device) {
 		array_push($nukiids, $device->nukiId);
 	}
+	sort($nukiids);
 	
 	// Broker
 	if( is_enabled($mqttcfg->usemqttgateway) ) {
@@ -91,13 +92,23 @@
 
 	$start = time();
 	$allfound = false;
+	
+	error_log("Configured NUKIs: " . implode(" ", $nukiids));
+	
 	while($mqtt->proc()) {
 		// Have we got all mqtt data from all configured Nuki's?
-		if( array_keys( $mqttresp ) == $nukiids and array_keys( $mqtttime ) == $nukiids ) {
-			$allfound = true;
-			break;
+		$mqttrespkeys = array_keys( $mqttresp );
+		$mqtttimekeys = array_keys( $mqtttime );
+		if( !empty($mqttrespkeys) and !empty($mqtttimekeys) ) {
+			sort($mqttrespkeys);
+			sort($mqtttimekeys);
+			error_log("mqttrespkeys: " . implode(" ", $mqttrespkeys));
+			error_log("mqtttimekeys: " . implode(" ", $mqtttimekeys));
+			if( $mqttrespkeys == $nukiids and $mqtttimekeys == $nukiids )  {
+				$allfound = true;
+				break;
+			}
 		}
-		
 		// Stop after x seconds waiting for new mqtt data
 		if(time() > $start+3) {
 			break;
@@ -144,11 +155,13 @@ function processJson($intopic, $msg){
 		global $topic;
 		global $mqttresp;
 		global $nukiids;
+		// error_log("processJson: intopic=$intopic|msg=$msg");
 		$device = substr( $intopic, strlen($topic) );
 		if( !in_array( $device, $nukiids ) ) {
 			return;
 		}
 		$mqttresp[$device] = json_decode($msg);
+		error_log("processJson: Found device $device");
 		// echo "Device: $device JsonTopic: {$intopic}\n";
 		// echo "\t$msg\n";
 }	
@@ -158,11 +171,13 @@ function processTime($intopic, $msg){
 		global $topic;
 		global $mqtttime;
 		global $nukiids;
+		// error_log("processTime: intopic=$intopic|msg=$msg");
 		$device = substr( $intopic, strlen($topic) );
 		$device = substr ( $device, 0, -strlen('/sentAtTimeLox') );
 		if( !in_array( $device, $nukiids ) ) {
 			return;
 		}
+		error_log("processTime: Found device $device");
 		$mqtttime[$device] = lox2epoch($msg);
 		// echo "Device: $device TimeTopic: {$intopic}\n";
 		// echo "\tsentAtTimeLox: $msg Epoch: $mqtttime[$device]\n";

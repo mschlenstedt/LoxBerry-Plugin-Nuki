@@ -370,6 +370,7 @@ if( $q->{ajax} ) {
 				$jsondata->{nukiId} = $device->{nukiId};
 				$jsondata->{state} = -1;
 				$jsondata->{stateName} = $message;
+				sleep(10);
 			
 			} else {
 				delete $jsondata->{success};
@@ -377,8 +378,7 @@ if( $q->{ajax} ) {
 				# Everything seems to be ok - we leave the retry loop
 				last;
 			}
-			LOGWARN "P$$ TRY 1 Failure response";
-			sleep(1);
+			LOGWARN "P$$ TRY $trycount Failure response";
 		}
 		
 		# Call PHP MQTT callback script to send data
@@ -389,7 +389,7 @@ if( $q->{ajax} ) {
 		my $callbackoutput = `cd $lbphtmldir && php $lbphtmldir/callback.php --json "$jsonstr" --sentbytype 2`;
 		LOGDEB "P$$ Callback output:";
 		LOGDEB "P$$ ".$callbackoutput;
-		sleep 1;
+		sleep 2;
 	}
 	
 	exit;
