@@ -980,7 +980,7 @@ sub searchdevices
 	my $jsonobj = LoxBerry::JSON->new();
 	my $cfg = $jsonobj->open(filename => $CFGFILEBRIDGES);
 	# Parsing Bridges
-	foreach my $key (keys %$cfg) {
+	foreach my $key (sort keys %$cfg) {
 		LOGINF "P$$ searchdevices: Parsing devices from Bridge " . $key;
 		if (!$cfg->{$key}->{token}) {
 			LOGINF "P$$ searchdevices: No token in config - skipping.";
@@ -1005,6 +1005,7 @@ sub searchdevices
 				LOGINF "P$$ searchdevices: Authentication failed - skipping.";
 				next;
 			}
+			LOGDEB "P$$ searchdevices /list: " . $response->decoded_content;
 			my $jsonobjgetdev = LoxBerry::JSON->new();
 			my $devices = $jsonobjgetdev->parse($response->decoded_content);
 			
@@ -1032,7 +1033,11 @@ sub searchdevices
 			LOGDEB "P$$ /info call: " . $response->decoded_content;
 			# Parsing /info Devices
 			for my $results( @{$devices} ){
-				LOGINF "P$$ searchdevices: /info found device: " . $results->{nukiId} . "";
+				if ( !is_enabled( $results->{paired} ) ) {
+					LOGINF "P$$ searchdevices: /info skipped device " . $results->{nukiId} . "/ rssi " . $results->{rssi} ." - NOT paired";
+					next;
+				}
+				LOGINF "P$$ searchdevices: /info found device " . $results->{nukiId} . " / rssi " . $results->{rssi};
 				$cfgdev->{$results->{nukiId}}->{nukiId} = $results->{nukiId};
 				$cfgdev->{$results->{nukiId}}->{bridgeId} = $bridgeid;
 				$cfgdev->{$results->{nukiId}}->{BLEName} = $results->{name};
