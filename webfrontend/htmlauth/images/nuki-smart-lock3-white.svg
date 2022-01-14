@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="Layer_1"
+   data-name="Layer 1"
+   width="32"
+   height="57"
+   viewBox="0 0 32 57"
+   version="1.1"
+   sodipodi:docname="nuki-smart-lock3-white.svg"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
+  <metadata
+     id="metadata29">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>nuki-smart-lock</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview27"
+     showgrid="false"
+     inkscape:zoom="16.561403"
+     inkscape:cx="20.006897"
+     inkscape:cy="4.2409985"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1" />
+  <defs
+     id="defs4">
+    <style
+       id="style2">.cls-1{fill:#111;}.cls-1,.cls-2{fill-rule:evenodd;}.cls-2,.cls-3{fill:#c3c3c3;}.cls-4{fill:#fff;}.cls-5{fill:#58595b;}</style>
+  </defs>
+  <title
+     id="title6">nuki-smart-lock</title>
+  <path
+     class="cls-1"
+     d="M8,14H24a8,8,0,0,1,8,8V53a4,4,0,0,1-4,4H4a4,4,0,0,1-4-4V22A8,8,0,0,1,8,14Z"
+     id="path8"
+     style="fill:#f9f9f9;stroke:#4d4d4d" />
+  <path
+     class="cls-2"
+     d="M16,0A14,14,0,1,1,2,14,14,14,0,0,1,16,0Z"
+     id="path10" />
+  <circle
+     class="cls-3"
+     cx="16"
+     cy="14"
+     r="8"
+     id="circle12" />
+  <path
+     class="cls-4"
+     d="M16,7a7,7,0,1,1-7,7,7,7,0,0,1,7-7m0-2a9,9,0,1,0,9,9,9,9,0,0,0-9-9h0Z"
+     id="path14" />
+  <path
+     class="cls-5"
+     d="M12,51a0.05,0.05,0,0,1,.06-0.05h0.07l1.17,1.12h0V51A0.06,0.06,0,0,1,13.35,51H13.7a0.06,0.06,0,0,1,.06.06v2a0.05,0.05,0,0,1-.06.05H13.62l-1.15-1.16h0v1.09a0.06,0.06,0,0,1-.06.06H12.06A0.06,0.06,0,0,1,12,52.95V51Z"
+     id="path16" />
+  <path
+     class="cls-5"
+     d="M14.6,51A0.06,0.06,0,0,1,14.66,51H15a0.06,0.06,0,0,1,.06.06V52.2a0.36,0.36,0,1,0,.72,0V51A0.06,0.06,0,0,1,15.85,51h0.36a0.06,0.06,0,0,1,.06.06v1.21a0.83,0.83,0,0,1-1.66,0V51Z"
+     id="path18" />
+  <path
+     class="cls-5"
+     d="M17.12,51A0.07,0.07,0,0,1,17.19,51h0.34a0.07,0.07,0,0,1,.07.07V51.8L18.25,51l0.06,0h0.37a0.07,0.07,0,0,1,.05.11L18,51.92l0.74,1a0.07,0.07,0,0,1-.06.11h-0.4l-0.05,0-0.67-.92v0.87a0.07,0.07,0,0,1-.07.07H17.19a0.07,0.07,0,0,1-.07-0.07V51Z"
+     id="path20" />
+  <path
+     class="cls-5"
+     d="M19.47,51A0.06,0.06,0,0,1,19.53,51h0.35a0.06,0.06,0,0,1,.06.06v1.93a0.06,0.06,0,0,1-.06.06H19.53a0.06,0.06,0,0,1-.06-0.06V51Z"
+     id="path22" />
+  <path
+     class="cls-5"
+     d="M19.4,49.77a0.3,0.3,0,0,1,.29-0.3,0.3,0.3,0,1,1,0,.6A0.3,0.3,0,0,1,19.4,49.77Z"
+     id="path24" />
+</svg>

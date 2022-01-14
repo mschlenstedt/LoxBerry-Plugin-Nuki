@@ -20,11 +20,8 @@
 # Modules
 ##########################################################################
 
-# use Config::Simple '-strict';
-# use CGI::Carp qw(fatalsToBrowser);
 use CGI;
 use LoxBerry::System;
-# use LoxBerry::Web;
 # use LoxBerry::JSON; # Available with LoxBerry 2.0
 require "$lbpbindir/libs/LoxBerry/JSON.pm";
 use LoxBerry::Log;
@@ -65,8 +62,10 @@ my %bridgeType = (
 	2 => "Software bridge",
 );
 my %deviceType = (
-	0 => "Smartlock",
+	0 => "Smart Lock",
 	2 => "Opener",
+	3 => "Smart Door",
+	4 => "Smart Lock 3.0"
 );
 my %lockState = (
 	0 => {	
@@ -91,7 +90,36 @@ my %lockState = (
 		7 => "opening",
 		253 => "boot run",
 		255 => "undefined"
-	}
+	},
+	3 => {	
+		-1 => "plugin connection error",
+		0 => "uncalibrated",
+		1 => "locked",
+		2 => "unlocking",
+		3 => "unlocked",
+		4 => "locking",
+		5 => "unlatched",
+		6 => "unlocked (lock&go)",
+		7 => "unlatching",
+		254 => "motor blocked",
+		255 => "undefined"
+	},
+	4 => {	
+		-1 => "plugin connection error",
+		0 => "uncalibrated",
+		1 => "locked",
+		2 => "unlocking",
+		3 => "unlocked",
+		4 => "locking",
+		5 => "unlatched",
+		6 => "unlocked (lock&go)",
+		7 => "unlatching",
+		254 => "motor blocked",
+		255 => "undefined"
+	},
+
+
+	
 );
 my %lockAction = (
 	0 => {	
@@ -107,7 +135,21 @@ my %lockAction = (
 		3 => "electric strike actuation",
 		4 => "activate continuous mode",
 		5 => "deactivate continuous mode"
-	}
+	},
+	3 => {	
+		1 => "unlock",
+		2 => "lock",
+		3 => "unlatch",
+		4 => "lock&go",
+		5 => "lock&go with unlatch"
+	},
+	4 => {	
+		1 => "unlock",
+		2 => "lock",
+		3 => "unlatch",
+		4 => "lock&go",
+		5 => "lock&go with unlatch"
+	},
 );
 
 ##########################################################################

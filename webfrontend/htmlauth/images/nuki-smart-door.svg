@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="Layer_1"
+   data-name="Layer 1"
+   width="28"
+   height="28"
+   viewBox="0 0 28 28"
+   version="1.1"
+   sodipodi:docname="nuki-smart-door.svg"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
+  <metadata
+     id="metadata29">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>nuki-smart-lock</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     id="namedview27"
+     showgrid="false"
+     inkscape:zoom="16.561403"
+     inkscape:cx="18.006897"
+     inkscape:cy="7.3013529"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="Layer_1" />
+  <defs
+     id="defs4">
+    <style
+       id="style2">.cls-1{fill:#111;}.cls-1,.cls-2{fill-rule:evenodd;}.cls-2,.cls-3{fill:#c3c3c3;}.cls-4{fill:#fff;}.cls-5{fill:#58595b;}</style>
+  </defs>
+  <title
+     id="title6">nuki-smart-lock</title>
+  <path
+     class="cls-2"
+     d="M 14,0 A 14,14 0 1 1 0,14 14,14 0 0 1 14,0 Z"
+     id="path10"
+     inkscape:connector-curvature="0"
+     style="fill:#c3c3c3;fill-rule:evenodd" />
+  <circle
+     class="cls-3"
+     cx="14"
+     cy="14"
+     r="8"
+     id="circle12"
+     style="fill:#c3c3c3" />
+  <path
+     class="cls-4"
+     d="m 14,7 a 7,7 0 1 1 -7,7 7,7 0 0 1 7,-7 m 0,-2 a 9,9 0 1 0 9,9 9,9 0 0 0 -9,-9 z"
+     id="path14"
+     inkscape:connector-curvature="0"
+     style="fill:#ffffff" />
+  <g
+     id="g36"
+     transform="translate(-2,-26.26589)">
+    <path
+       id="path16"
+       d="m 12,51 a 0.05,0.05 0 0 1 0.06,-0.05 h 0.07 l 1.17,1.12 v 0 V 51 a 0.06,0.06 0 0 1 0.05,0 h 0.35 a 0.06,0.06 0 0 1 0.06,0.06 v 2 a 0.05,0.05 0 0 1 -0.06,0.05 h -0.08 l -1.15,-1.16 v 0 1.09 A 0.06,0.06 0 0 1 12.41,53.1 H 12.06 A 0.08077747,0.08077747 0 0 1 12,52.95 Z"
+       class="cls-5"
+       inkscape:connector-curvature="0"
+       style="fill:#58595b" />
+    <path
+       id="path18"
+       d="m 14.6,51 a 0.06,0.06 0 0 1 0.06,0 H 15 a 0.06,0.06 0 0 1 0.06,0.06 v 1.14 a 0.36,0.36 0 1 0 0.72,0 V 51 a 0.06,0.06 0 0 1 0.07,0 h 0.36 a 0.06,0.06 0 0 1 0.06,0.06 v 1.21 a 0.83,0.83 0 0 1 -1.66,0 V 51 Z"
+       class="cls-5"
+       inkscape:connector-curvature="0"
+       style="fill:#58595b" />
+    <path
+       id="path20"
+       d="m 17.12,51 a 0.07,0.07 0 0 1 0.07,0 h 0.34 a 0.07,0.07 0 0 1 0.07,0.07 V 51.8 L 18.25,51 h 0.06 0.37 a 0.07,0.07 0 0 1 0.05,0.11 l -0.73,0.81 0.74,1 a 0.07,0.07 0 0 1 -0.06,0.11 h -0.4 -0.05 l -0.67,-0.92 v 0.87 a 0.07,0.07 0 0 1 -0.07,0.07 h -0.3 a 0.07,0.07 0 0 1 -0.07,-0.07 z"
+       class="cls-5"
+       inkscape:connector-curvature="0"
+       style="fill:#58595b" />
+    <path
+       id="path22"
+       d="m 19.47,51 a 0.06,0.06 0 0 1 0.06,0 h 0.35 a 0.06,0.06 0 0 1 0.06,0.06 v 1.93 a 0.06,0.06 0 0 1 -0.06,0.06 h -0.35 a 0.06,0.06 0 0 1 -0.06,-0.06 z"
+       class="cls-5"
+       inkscape:connector-curvature="0"
+       style="fill:#58595b" />
+    <path
+       id="path24"
+       d="m 19.4,49.77 a 0.3,0.3 0 0 1 0.29,-0.3 0.3,0.3 0 1 1 0,0.6 0.3,0.3 0 0 1 -0.29,-0.3 z"
+       class="cls-5"
+       inkscape:connector-curvature="0"
+       style="fill:#58595b" />
+  </g>
+</svg>

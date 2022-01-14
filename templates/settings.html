@@ -756,8 +756,6 @@ function bridgeResetCallbacks ( intBridgeId ) {
 	
 	
 	});
-
-
 }
 
 
@@ -1130,14 +1128,27 @@ function getconfig() {
 					switch(item.deviceType) {
 						case 0: $('<td />', { html: '<img src="./images/nuki-smart-lock.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
 						case 2: $('<td />', { html: '<img src="./images/nuki-opener.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						case 3: $('<td />', { html: '<img src="./images/nuki-smart-door.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
+						case 4: $('<td />', { html: '<img src="./images/nuki-smart-lock3-white.svg" alt="'+DEVICETYPE[item.deviceType]+'" height="32"></img>' }).appendTo(row); break;
 						default:  $('<td />', { html: '<img src="./images/nuki-unknown.svg" alt="unknown" height="32"></img>' }).appendTo(row);
 					}
 					$('<td />', { text: item.nukiId }).appendTo(row);
 					$('<td />', { text: item.name }).appendTo(row);
 					$('<td />', { text: item.bridgeId }).appendTo(row);
 					$('<td />', { text: ( item.paired == true ? '<TMPL_VAR COMMON.YES>' : '<TMPL_VAR COMMON.NO>' ) }).appendTo(row);
+					/*
 					// Formular out_min+(rssi-in_min)*(out_max-out_min)/(in_max-in_min)
-					rssicol = item.rssi ? numberToColorHsl( 100+(item.rssi+40)*(0-100)/(-100+40) ) : "transparent";
+					var in_min = -90;
+					var out_min = 0;
+					var in_max = -20;
+					var out_max = 120;
+					// item.rssi = -50; // To test
+					//rssicol = item?.rssi ? numberToColorHsl( out_min+(item.rssi-in_min)*(out_max-out_min)/(in_max-in_min)    ) : "transparent";
+					*/
+					if( item.rssi < -80 ) rssicol = '#d90000';
+					else if ( item.rssi < -70 ) rssicol = '#ffff00';
+					else rssicol = '#6cd900';
+										
 					$('<td />', { html: '<span style="background-color:'+rssicol+'">&nbsp;'+item.rssi+'&nbsp;</span>' }).appendTo(row);
 					$('<td />', { html: '\
 					<span class="deviceVOdownload" data-intbridgeid="'+item.bridgeId+'" data-nukiid="'+item.nukiId+'"><a href="#" id="btndeviceVOdownload'+item.nukiId+'" name="btndeviceVOdownload'+item.nukiId+'" \
