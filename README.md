@@ -1,3 +1,3 @@
 # LoxBerry-Plugin-Nuki
 A LoxBerry Plugin.
-LoxWiki: https://www.loxwiki.eu/x/t4RdAw
+LoxWiki: https://wiki.loxberry.de/plugins/nuki_smartlock/
