@@ -56,26 +56,29 @@
 		$topic = $topic."/";
 	}
 	define( "TOPIC", $topic);
+	tolog("LOGDEB", "MQTT topic is " . $topic);
 
 	// Broker
 	if( is_enabled($mqttcfg->usemqttgateway) ) {
 		// Use MQTT Gateway credentials
 		// Check if MQTT plugin in installed
-		$mqttplugindata = LBSystem::plugindata("mqttgateway");
-		if( !empty($mqttplugindata) ) {
-			$mqttconf = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/mqtt.json" ));
-			$mqttcred = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/cred.json" ));
-			$brokeraddress = $mqttconf->Main->brokeraddress;
-			$brokeruser = $mqttcred->Credentials->brokeruser;
-			$brokerpass = $mqttcred->Credentials->brokerpass;
-			echo "Using broker settings from MQTT Gateway plugin:\n";
+		
+		require_once "loxberry_io.php";
+		$mqttcred = mqtt_connectiondetails();
+		if( !empty($mqttcred) ) {
+			$brokeraddress = $mqttcred["brokeraddress"];
+			$brokeruser = $mqttcred["brokeruser"];
+			$brokerpass = $mqttcred["brokerpass"];
+			tolog("LOGINF", "Using MQTT Gateway settings, MQTT server " . $brokeraddress); 
+		} else {
+			tolog("LOGCRIT", "Could not read MQTT Server settings from MQTT Gateway.");
+			exit(1);
 		}
 	} else {
 		// Use MQTT config from Nuki plugin
 		$brokeraddress = $mqttcfg->server.":".$mqttcfg->port;
 		$brokeruser = $mqttcfg->username;
 		$brokerpass = $mqttcfg->password;
-		echo "Using broker settings from NUKI plugin:\n";
 	}
 	
 	// Broker validation
@@ -95,7 +98,7 @@
 	$nukidata = json_decode($options["json"]);
 	if ( !empty($nukidata) and isset($nukidata->nukiId) ) {
 		echo "OK: Publishing...\n";
-		mqtt_publish( [ 
+		nuki_mqtt_publish( [ 
 			$nukidata->nukiId => $options["json"], 
 			$nukidata->nukiId."/sentBy" => $options["sentbytype"],
 			$nukidata->nukiId."/sentByName" => $SentByType[$options["sentbytype"]],
@@ -112,7 +115,7 @@
 ####################################################
 # MQTT handler
 ####################################################
-function mqtt_publish ( $keysandvalues ) {
+function nuki_mqtt_publish ( $keysandvalues ) {
 	
 	global $brokeraddress, $brokeruser, $brokerpass;
 	

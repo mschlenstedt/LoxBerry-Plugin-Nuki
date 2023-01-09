@@ -22,8 +22,7 @@
 
 use CGI;
 use LoxBerry::System;
-# use LoxBerry::JSON; # Available with LoxBerry 2.0
-require "$lbpbindir/libs/LoxBerry/JSON.pm";
+use LoxBerry::JSON; # Available with LoxBerry 2.0
 use LoxBerry::Log;
 use Time::HiRes qw ( sleep );
 use warnings;
@@ -514,10 +513,12 @@ sub form_devices
 
 sub form_mqtt
 {
+	require LoxBerry::IO;
+	
 	$template->param("FORM_MQTT", 1);
-	my $mqttplugindata = LoxBerry::System::plugindata("mqttgateway");
+	my $mqttplugindata = LoxBerry::IO::mqtt_connectiondetails();
 	$template->param("MQTTGATEWAY_INSTALLED", 1) if($mqttplugindata);
-	$template->param("MQTTGATEWAY_PLUGINDBFOLDER", $mqttplugindata->{PLUGINDB_FOLDER}) if($mqttplugindata);
+	$template->param("MQTTGATEWAY_INCOMINGOVERVIEW", 1) if(-e $lbshtmlauthdir . "/mqtt-gateway.cgi");
 	return();
 }
 
@@ -1810,9 +1811,8 @@ sub getdevicedownloads
 		return (1, "NukiId does not exist", undef);
 	}
 	
-	require "$lbpbindir/libs/LoxBerry/LoxoneTemplateBuilder.pm";
+	require LoxBerry::LoxoneTemplateBuilder;
 	require HTML::Entities;
-
  
 	# Get current date
 	my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime();

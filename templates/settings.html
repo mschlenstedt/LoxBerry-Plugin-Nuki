@@ -405,9 +405,9 @@ $(function() {
 		checkSecurePIN();
 	});
 
-	// <TMPL_IF MQTTGATEWAY_PLUGINDBFOLDER>
-		$("#mqtt_onverviewlink").html('<a href="http://'+window.location.host+'/admin/plugins/mqttgateway/index.cgi?form=topics" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
-	// </TMPL_IF>
+	<TMPL_IF MQTTGATEWAY_INCOMINGOVERVIEW>
+		$("#mqtt_onverviewlink").html('<a href="/admin/system/mqtt-gateway.cgi?form=incoming" target="_blank"><TMPL_VAR MQTT.LABEL_MQTT_GATEWAY_LINK></a>');
+	</TMPL_IF>
 
 	// Eventhandlers for "Add" to enable and disable validation
 	$("#popupAddButton").click( function(e) {

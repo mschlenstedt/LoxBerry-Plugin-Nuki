@@ -47,13 +47,16 @@
 	if( is_enabled($mqttcfg->usemqttgateway) ) {
 		// Use MQTT Gateway credentials
 		// Check if MQTT plugin in installed
-		$mqttplugindata = LBSystem::plugindata("mqttgateway");
-		if( !empty($mqttplugindata) ) {
-			$mqttconf = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/mqtt.json" ));
-			$mqttcred = json_decode(file_get_contents(LBHOMEDIR . "/config/plugins/" . $mqttplugindata['PLUGINDB_FOLDER'] . "/cred.json" ));
-			$brokeraddress = $mqttconf->Main->brokeraddress;
-			$brokeruser = $mqttcred->Credentials->brokeruser;
-			$brokerpass = $mqttcred->Credentials->brokerpass;
+		
+		require_once "loxberry_io.php";
+		$mqttcred = mqtt_connectiondetails();
+		if( !empty($mqttcred) ) {
+			$brokeraddress = $mqttcred[brokeraddress];
+			$brokeruser = $mqttcred[brokeruser];
+			$brokerpass = $mqttcred[brokerpass];
+		} else {
+			setstatus(3, "Could not read MQTT Server settings from MQTT Gateway.");
+			exit;
 		}
 	} else {
 		// Use MQTT config from Nuki plugin
